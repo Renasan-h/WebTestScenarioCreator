@@ -4,9 +4,16 @@ import { executeScenario } from "../packages/engine/src/execute";
 import { openBrowser, runAction } from "../packages/playwright-adapter/src/browser";
 
 async function main() {
-  const path = process.argv[2];
-  if (!path) throw new Error("Usage: pnpm runner <scenario.pflow>");
-  const scenario = scenarioSchema.parse(JSON.parse(await readFile(path, "utf8")));
+  const raw = process.argv.includes("--stdin")
+    ? await new Promise<string>((resolve, reject) => {
+        let data = "";
+        process.stdin.setEncoding("utf8");
+        process.stdin.on("data", chunk => data += chunk);
+        process.stdin.on("end", () => resolve(data));
+        process.stdin.on("error", reject);
+      })
+    : await readFile(process.argv[2] ?? "", "utf8");
+  const scenario = scenarioSchema.parse(JSON.parse(raw));
   const { browser, page } = await openBrowser(scenario);
   try {
     await executeScenario(scenario, n => runAction(page, n), e => process.stdout.write(JSON.stringify(e) + "\n"));
