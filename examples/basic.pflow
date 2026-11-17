@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "id": "example-basic",
+    "name": "基本シナリオ",
+    "createdAt": "2026-11-18T00:00:00Z",
+    "updatedAt": "2026-11-18T00:00:00Z"
+  },
+  "settings": {
+    "browser": "edge",
+    "headless": false,
+    "timeoutMs": 10000,
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "variables": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "label": "開始",
+      "position": {
+        "x": 80,
+        "y": 80
+      },
+      "config": {}
+    },
+    {
+      "id": "navigate",
+      "type": "navigate",
+      "label": "ページを開く",
+      "position": {
+        "x": 80,
+        "y": 200
+      },
+      "config": {
+        "url": "https://example.com"
+      }
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "label": "終了",
+      "position": {
+        "x": 80,
+        "y": 320
+      },
+      "config": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "start",
+      "target": "navigate"
+    },
+    {
+      "id": "e2",
+      "source": "navigate",
+      "target": "end"
+    }
+  ]
+}
