@@ -1,0 +1,9 @@
+node_modules/
+dist/
+src-tauri/target/
+*.pflow.local
+.env
+.env.*
+!*.example
+playwright-report/
+test-results/
