@@ -14,6 +14,7 @@ const node = z.discriminatedUnion("type", [
   z.object({ ...base, type: z.literal("navigate"), config: z.object({ url: z.string().url() }) }),
   z.object({ ...base, type: z.literal("click"), config: z.object({ locator: locatorSchema, timeoutMs: z.number().positive().optional() }) }),
   z.object({ ...base, type: z.literal("fill"), config: z.object({ locator: locatorSchema, value: z.string(), timeoutMs: z.number().positive().optional() }) }),
+  z.object({ ...base, type: z.literal("assertVisible"), config: z.object({ locator: locatorSchema }) }),
   z.object({ ...base, type: z.literal("wait"), config: z.object({ durationMs: z.number().int().nonnegative() }) }),
 ]);
 
