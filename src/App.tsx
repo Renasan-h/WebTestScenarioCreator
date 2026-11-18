@@ -20,6 +20,7 @@ function toFlow(s: Scenario): { nodes: Node[]; edges: Edge[] } {
 const actions: { type: ScenarioNode["type"]; name: string }[] = [
   { type: "navigate", name: "URL移動" }, { type: "click", name: "クリック" },
   { type: "fill", name: "入力" }, { type: "wait", name: "待機" },
+  { type: "assertVisible", name: "表示確認" },
 ];
 function newNode(type: ScenarioNode["type"], position: { x: number; y: number }): ScenarioNode {
   const base = { id: crypto.randomUUID(), label: actions.find(a => a.type === type)?.name ?? type, position };
@@ -28,6 +29,7 @@ function newNode(type: ScenarioNode["type"], position: { x: number; y: number })
     case "click": return { ...base, type, config: { locator: { strategy: "css", value: "#button" } } };
     case "fill": return { ...base, type, config: { locator: { strategy: "css", value: "#input" }, value: "" } };
     case "wait": return { ...base, type, config: { durationMs: 1000 } };
+    case "assertVisible": return { ...base, type, config: { locator: { strategy: "css", value: "body" } } };
     case "start": return { ...base, type, config: {} };
     case "end": return { ...base, type, config: {} };
   }
@@ -131,7 +133,7 @@ export default function App() {
       <aside className="inspector"><h3>ノード設定</h3>{selectedNode ? <>
         <label>表示名<input value={selectedNode.label} onChange={e => editNode({ ...selectedNode, label: e.target.value })}/></label>
         {selectedNode.type === "navigate" && <label>URL<input value={selectedNode.config.url} onChange={e => editNode({ ...selectedNode, config: { url: e.target.value } })}/></label>}
-        {(selectedNode.type === "click" || selectedNode.type === "fill") && <>
+        {(selectedNode.type === "click" || selectedNode.type === "fill" || selectedNode.type === "assertVisible") && <>
           <label>Locator方式<select value={selectedNode.config.locator.strategy} onChange={e => {
             const locator = e.target.value === "role" ? { strategy: "role" as const, role: "button" } : { strategy: e.target.value as "css" | "testId" | "text", value: "" };
             editNode({ ...selectedNode, config: { ...selectedNode.config, locator } } as ScenarioNode);
