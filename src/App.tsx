@@ -160,12 +160,12 @@ export default function App() {
   }
   return <div className="app">
     <header><strong>Web Test Scenario Creator</strong>
-      <button onClick={() => { replace(fresh()); setPath(null); setMessage("新規作成"); }}>新規</button>
-      <button onClick={load}>開く</button><button onClick={persist}>保存</button><button onClick={exportTest}>TS出力</button>
-      <select aria-label="ブラウザ" value={scenario.settings.browser} onChange={e => updateSettings({ browser: e.target.value as "edge" | "chromium" })}>
+      <button disabled={busy} onClick={() => { replace(fresh()); setPath(null); setMessage("新規作成"); }}>新規</button>
+      <button disabled={busy} onClick={load}>開く</button><button disabled={busy} onClick={persist}>保存</button><button disabled={busy} onClick={exportTest}>TS出力</button>
+      <select aria-label="ブラウザ" disabled={busy} value={scenario.settings.browser} onChange={e => updateSettings({ browser: e.target.value as "edge" | "chromium" })}>
         <option value="edge">Edge</option><option value="chromium">Chromium</option>
       </select>
-      <label><input type="checkbox" checked={scenario.settings.headless} onChange={e => updateSettings({ headless: e.target.checked })}/> ヘッドレス</label>
+      <label><input type="checkbox" disabled={busy} checked={scenario.settings.headless} onChange={e => updateSettings({ headless: e.target.checked })}/> ヘッドレス</label>
       <button disabled={busy} onClick={run}>{busy && !recording ? "実行中…" : "▶ 実行"}</button>
       <button disabled={busy} onClick={startRecording}>{recording ? "記録中…" : "● 記録"}</button>
       <button disabled={!busy || stopping} onClick={stop}>{stopping ? "停止中…" : "■ 停止"}</button>
@@ -173,7 +173,7 @@ export default function App() {
     <main>
       <aside><h3>シナリオ</h3>
         <input aria-label="シナリオ名" value={scenario.metadata.name} onChange={e => setScenario(s => ({ ...s, metadata: { ...s.metadata, name: e.target.value } }))}/>
-        <h3>ノード追加</h3>{actions.map(a => <button className="palette" key={a.type} onClick={() => add(a.type)}>＋ {a.name}</button>)}
+        <h3>ノード追加</h3>{actions.map(a => <button className="palette" key={a.type} disabled={busy} onClick={() => add(a.type)}>＋ {a.name}</button>)}
         <p>ノードの端からドラッグして接続してください。</p>
       </aside>
       <section><ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)} fitView><Background/><Controls/><MiniMap/></ReactFlow></section>
@@ -194,7 +194,7 @@ export default function App() {
         {selectedNode.type === "assertText" && <label>期待する文字列<input value={selectedNode.config.expected} onChange={e => editNode({ ...selectedNode, config: { ...selectedNode.config, expected: e.target.value } })}/></label>}
         {selectedNode.type === "fill" && <label>入力値<input value={selectedNode.config.value} onChange={e => editNode({ ...selectedNode, config: { ...selectedNode.config, value: e.target.value } })}/></label>}
         {selectedNode.type === "wait" && <label>待機ミリ秒<input type="number" min={0} value={selectedNode.config.durationMs} onChange={e => editNode({ ...selectedNode, config: { durationMs: Number(e.target.value) } })}/></label>}
-        <button onClick={removeSelected}>ノード削除</button>
+        <button disabled={busy} onClick={removeSelected}>ノード削除</button>
       </> : <p>ノードを選択してください。</p>}</aside>
     </main>
     <div className="logs"><strong>実行ログ</strong><pre>{logs.join("\n") || "実行するとログが表示されます。"}</pre></div>
