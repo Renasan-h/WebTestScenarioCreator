@@ -22,3 +22,15 @@ test("changes browser and creates new scenario", async ({ page }) => {
   await page.getByRole("button", { name: "新規" }).click();
   await expect(page.getByLabel("ブラウザ")).toHaveValue("edge");
 });
+
+test("stop is disabled when no scenario is running", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "■ 停止" })).toBeDisabled();
+});
+test("visibility assertion node can be configured", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "＋ 表示確認" }).click();
+  await expect(page.getByLabel("Locator値")).toHaveValue("body");
+  await page.getByLabel("Locator値").fill("#ready");
+  await expect(page.getByLabel("Locator値")).toHaveValue("#ready");
+});
