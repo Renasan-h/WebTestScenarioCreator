@@ -43,9 +43,9 @@ export async function attachRecorder(page: Page, onAction: (action: RecordedActi
     }, true);
     document.addEventListener('change', e => {
       const el = e.target;
-      if (el instanceof HTMLInputElement && el.type !== 'password' && el.type !== 'hidden' && el.type !== 'file')
+      if (el instanceof HTMLInputElement && !['password', 'hidden', 'file', 'checkbox', 'radio'].includes(el.type) && !el.autocomplete.toLowerCase().includes('password') && !el.autocomplete.toLowerCase().includes('cc-'))
         window.__scenarioRecord({ type: 'fill', selector: selector(el), value: el.value });
-      else if (el instanceof HTMLTextAreaElement)
+      else if (el instanceof HTMLTextAreaElement && !el.autocomplete.toLowerCase().includes('password'))
         window.__scenarioRecord({ type: 'fill', selector: selector(el), value: el.value });
     }, true);
   })()`;
