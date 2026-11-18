@@ -41,3 +41,9 @@ test("text assertion node accepts expected text", async ({ page }) => {
   await page.getByLabel("期待する文字列").fill("Welcome");
   await expect(page.getByLabel("期待する文字列")).toHaveValue("Welcome");
 });
+
+test("record button is available and stop is initially disabled", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "● 記録" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "■ 停止" })).toBeDisabled();
+});
