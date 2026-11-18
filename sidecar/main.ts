@@ -22,8 +22,16 @@ async function main() {
       const firstUrl = scenario.nodes.find(n => n.type === "navigate");
       if (firstUrl?.type === "navigate") await page.goto(firstUrl.config.url);
       else await page.goto("about:blank");
-      await new Promise<void>(resolve => { browser.on("disconnected", () => resolve()); page.on("close", () => resolve()); });
-      await detach();
+      try {
+        await new Promise<void>(resolve => {
+          if (!browser.isConnected() || page.isClosed()) { resolve(); return; }
+          browser.once("disconnected", () => resolve());
+          page.once("close", () => resolve());
+          if (!browser.isConnected() || page.isClosed()) resolve();
+        });
+      } finally {
+        await detach();
+      }
     } else {
       await executeScenario(scenario, n => runAction(page, n), e => process.stdout.write(JSON.stringify(e) + "\n"));
     }
