@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ReactFlow, Background, Controls, MiniMap, addEdge, useNodesState, useEdgesState, type Connection, type Node, type Edge } from "@xyflow/react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
 import { exportPlaywrightTest } from "../packages/engine/src/export";
-import { toRecordedNode, type RecordedAction } from "../packages/playwright-adapter/src/record";
+import type { RecordedAction } from "../packages/playwright-adapter/src/record";
+import { appendRecordedAction } from "../packages/playwright-adapter/src/record-graph";
 import { listen } from "@tauri-apps/api/event";
 import { scenarioSchema, validateGraph, type Scenario, type ScenarioNode } from "../packages/schema/src/scenario";
 
@@ -47,6 +48,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [recording, setRecording] = useState(false);
+  const recordingGraph = useRef<Scenario | null>(null);
   const [message, setMessage] = useState("準備完了");
   const onConnect = useCallback((c: Connection) => setEdges(es => addEdge(c, es)), [setEdges]);
   const selectedNode = scenario.nodes.find(n => n.id === selected);
@@ -103,15 +105,15 @@ export default function App() {
     } catch (e) { setMessage("出力失敗: " + String(e)); }
   }
   function addRecorded(action: RecordedAction) {
-    setScenario(s => {
-      const n = toRecordedNode(action, s.nodes.length);
-      setNodes(ns => [...ns, { id: n.id, position: n.position, data: { label: n.label } }]);
-      return { ...s, nodes: [...s.nodes, n] };
-    });
+    if (!recordingGraph.current) return;
+    const next = appendRecordedAction(recordingGraph.current, action);
+    recordingGraph.current = next;
+    replace(next);
   }
   async function startRecording() {
     if (busy) return;
     const s = snapshot();
+    recordingGraph.current = s;
     setBusy(true); setRecording(true); setLogs([]); setMessage("操作を記録中（ブラウザを閉じるか停止してください）");
     let unlisten: (() => void) | undefined;
     try {
@@ -127,9 +129,9 @@ export default function App() {
         setLogs(ls => [...ls, e.payload]);
       });
       await invoke("run_scenario", { scenarioJson: JSON.stringify(s), record: true });
-      setMessage("記録終了。ノードを接続して保存してください。");
+      setMessage("記録終了。シナリオを確認して保存してください。");
     } catch (e) { setMessage("記録終了または失敗: " + String(e)); }
-    finally { unlisten?.(); setBusy(false); setRecording(false); setStopping(false); }
+    finally { unlisten?.(); recordingGraph.current = null; setBusy(false); setRecording(false); setStopping(false); }
   }
   async function run() {
     const s = snapshot();
