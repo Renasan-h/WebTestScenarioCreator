@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { attachRecorder, type RecordedAction } from "../../packages/playwright-adapter/src/record";
+import { attachRecorder, toRecordedNode, type RecordedAction } from "../../packages/playwright-adapter/src/record";
+import { runAction } from "../../packages/playwright-adapter/src/browser";
 
 test("records real browser click and input while excluding passwords", async ({ page }) => {
   await page.goto("about:blank");
@@ -48,9 +49,7 @@ test("records navigation after a click and can replay captured actions", async (
   });
   await replay.goto("https://recording.example/start");
   for (const action of actions) {
-    if (action.type === "click") await replay.locator(action.selector).click();
-    if (action.type === "fill") await replay.locator(action.selector).fill(action.value);
-    if (action.type === "navigate") await replay.goto(action.url);
+    await runAction(replay, toRecordedNode(action, 0));
   }
   await expect(replay.locator("#result")).toHaveText("Done");
   await replay.close();
