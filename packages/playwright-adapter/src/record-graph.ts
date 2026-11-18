@@ -12,6 +12,7 @@ export function appendRecordedAction(s: Scenario, action: RecordedAction): Scena
   if (!incomingEnd && outgoingStart) throw new Error("Start already has an outgoing edge");
   const predecessor = incomingEnd?.source ?? start.id;
   const node = toRecordedNode(action, s.nodes.length);
+  node.position = { x: 200, y: 140 + (s.nodes.length - 2) * 110 };
   const edges = s.edges.filter(e => e.id !== incomingEnd?.id);
   return {
     ...s,
