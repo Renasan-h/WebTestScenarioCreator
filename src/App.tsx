@@ -3,6 +3,7 @@ import { ReactFlow, Background, Controls, MiniMap, addEdge, useNodesState, useEd
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
+import { exportPlaywrightTest } from "../packages/engine/src/export";
 import { listen } from "@tauri-apps/api/event";
 import { scenarioSchema, validateGraph, type Scenario, type ScenarioNode } from "../packages/schema/src/scenario";
 
@@ -86,6 +87,15 @@ export default function App() {
       setPath(p); setScenario(s); setMessage("保存しました: " + p);
     } catch (e) { setMessage("保存失敗: " + String(e)); }
   }
+  async function exportTest() {
+    try {
+      const code = exportPlaywrightTest(snapshot());
+      const p = await save({ defaultPath: scenario.metadata.name + ".spec.ts", filters: [{ name: "TypeScript", extensions: ["ts"] }] });
+      if (!p) return;
+      await writeTextFile(p, code);
+      setMessage("Playwrightコードを出力しました: " + p);
+    } catch (e) { setMessage("出力失敗: " + String(e)); }
+  }
   async function run() {
     const s = snapshot();
     const errors = validateGraph(s);
@@ -104,7 +114,7 @@ export default function App() {
   return <div className="app">
     <header><strong>Web Test Scenario Creator</strong>
       <button onClick={() => { replace(fresh()); setPath(null); setMessage("新規作成"); }}>新規</button>
-      <button onClick={load}>開く</button><button onClick={persist}>保存</button>
+      <button onClick={load}>開く</button><button onClick={persist}>保存</button><button onClick={exportTest}>TS出力</button>
       <select aria-label="ブラウザ" value={scenario.settings.browser} onChange={e => updateSettings({ browser: e.target.value as "edge" | "chromium" })}>
         <option value="edge">Edge</option><option value="chromium">Chromium</option>
       </select>
