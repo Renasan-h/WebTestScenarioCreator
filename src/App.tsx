@@ -43,6 +43,7 @@ export default function App() {
   const [path, setPath] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const [message, setMessage] = useState("準備完了");
   const onConnect = useCallback((c: Connection) => setEdges(es => addEdge(c, es)), [setEdges]);
   const selectedNode = scenario.nodes.find(n => n.id === selected);
@@ -103,12 +104,19 @@ export default function App() {
     const errors = validateGraph(s);
     if (errors.length) { setMessage(errors.join(" / ")); return; }
     setBusy(true); setLogs([]); setMessage("実行中");
-    const unlisten = await listen<string>("scenario-log", e => setLogs(ls => [...ls, e.payload]));
+    let unlisten: (() => void) | undefined;
     try {
+      unlisten = await listen<string>("scenario-log", e => setLogs(ls => [...ls, e.payload]));
       await invoke("run_scenario", { scenarioJson: JSON.stringify(s) });
       setMessage("実行完了");
-    } catch (e) { setMessage("実行失敗: " + String(e)); }
-    finally { unlisten(); setBusy(false); }
+    } catch (e) { setMessage("実行失敗または停止: " + String(e)); }
+    finally { unlisten?.(); setBusy(false); setStopping(false); }
+  }
+  async function stop() {
+    if (!busy || stopping) return;
+    setStopping(true); setMessage("停止処理中");
+    try { await invoke("stop_scenario"); }
+    catch (e) { setMessage("停止失敗: " + String(e)); setStopping(false); }
   }
   function updateSettings(patch: Partial<Scenario["settings"]>) {
     setScenario(s => ({ ...s, settings: { ...s.settings, ...patch } }));
@@ -122,6 +130,7 @@ export default function App() {
       </select>
       <label><input type="checkbox" checked={scenario.settings.headless} onChange={e => updateSettings({ headless: e.target.checked })}/> ヘッドレス</label>
       <button disabled={busy} onClick={run}>{busy ? "実行中…" : "▶ 実行"}</button>
+      <button disabled={!busy || stopping} onClick={stop}>{stopping ? "停止中…" : "■ 停止"}</button>
     </header>
     <main>
       <aside><h3>シナリオ</h3>
