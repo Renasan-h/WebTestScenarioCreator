@@ -19,7 +19,10 @@ export function toRecordedNode(action: RecordedAction, index: number): ScenarioN
 export async function attachRecorder(page: Page, onAction: (action: RecordedAction) => void): Promise<() => Promise<void>> {
   let active = true;
   const handle = (_source: unknown, action: RecordedAction) => {
-    if (active && (action.type === "navigate" || action.type === "click" || action.type === "fill")) onAction(action);
+    if (!active || !action || typeof action !== "object") return;
+    if (action.type === "navigate" && typeof action.url === "string" && /^https?:\/\//.test(action.url)) onAction(action);
+    if (action.type === "click" && typeof action.selector === "string" && action.selector.length > 0) onAction(action);
+    if (action.type === "fill" && typeof action.selector === "string" && action.selector.length > 0 && typeof action.value === "string") onAction(action);
   };
   await page.exposeBinding("__scenarioRecord", handle);
   const script = `(() => {
