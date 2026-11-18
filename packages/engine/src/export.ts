@@ -15,6 +15,7 @@ function statement(n: ScenarioNode): string | null {
     case "navigate": return `await page.goto(${JSON.stringify(n.config.url)});`;
     case "click": return `await ${loc(n.config.locator)}.click();`;
     case "fill": return `await ${loc(n.config.locator)}.fill(${JSON.stringify(n.config.value)});`;
+    case "assertVisible": return `await ${loc(n.config.locator)}.waitFor({ state: "visible" });`;
     case "wait": return `await page.waitForTimeout(${n.config.durationMs});`;
   }
 }
