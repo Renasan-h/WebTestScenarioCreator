@@ -12,7 +12,8 @@ struct RunnerState {
 async fn stop_scenario(state: State<'_, RunnerState>) -> Result<(), String> {
     let running = state.child.lock().map_err(|e| e.to_string())?.clone();
     let child = running.ok_or("実行中のシナリオがありません")?;
-    child.lock().map_err(|e| e.to_string())?.kill().map_err(|e| e.to_string())
+    let result = child.lock().map_err(|e| e.to_string())?.kill().map_err(|e| e.to_string());
+    result
 }
 
 #[tauri::command]
