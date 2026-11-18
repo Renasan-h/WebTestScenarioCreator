@@ -24,6 +24,7 @@ export async function runAction(page: Page, node: ScenarioNode): Promise<void> {
     case "navigate": await page.goto(node.config.url); return;
     case "click": await locator(page, node.config.locator).click({ timeout: node.config.timeoutMs }); return;
     case "fill": await locator(page, node.config.locator).fill(node.config.value, { timeout: node.config.timeoutMs }); return;
+    case "assertVisible": await locator(page, node.config.locator).waitFor({ state: "visible" }); return;
     case "wait": await page.waitForTimeout(node.config.durationMs); return;
   }
 }
