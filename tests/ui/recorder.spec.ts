@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { attachRecorder, toRecordedNode, type RecordedAction } from "../../packages/playwright-adapter/src/record";
+import { attachRecorder, type RecordedAction } from "../../packages/playwright-adapter/src/record";
 import { runAction } from "../../packages/playwright-adapter/src/browser";
+import { appendRecordedAction } from "../../packages/playwright-adapter/src/record-graph";
+import { executeScenario } from "../../packages/engine/src/execute";
+import { validateGraph, type Scenario } from "../../packages/schema/src/scenario";
 
 test("records real browser click and input while excluding passwords", async ({ page }) => {
   await page.goto("about:blank");
@@ -47,10 +50,21 @@ test("records navigation after a click and can replay captured actions", async (
       ? '<h1 id="result">Done</h1>'
       : '<a id="next" href="/next">Next</a>' });
   });
-  await replay.goto("https://recording.example/start");
-  for (const action of actions) {
-    await runAction(replay, toRecordedNode(action, 0));
-  }
+  const initial: Scenario = {
+    schemaVersion: "1.0",
+    metadata: { id: "replay", name: "Recorded replay", createdAt: "", updatedAt: "" },
+    settings: { browser: "chromium", headless: true, timeoutMs: 5000, viewport: { width: 800, height: 600 } },
+    variables: {},
+    nodes: [
+      { id: "start", type: "start", label: "Start", position: { x: 0, y: 0 }, config: {} },
+      { id: "end", type: "end", label: "End", position: { x: 0, y: 100 }, config: {} },
+    ],
+    edges: [],
+  };
+  const scenario = actions.reduce((graph, action) => appendRecordedAction(graph, action),
+    appendRecordedAction(initial, { type: "navigate", url: "https://recording.example/start" }));
+  expect(validateGraph(scenario)).toEqual([]);
+  await executeScenario(scenario, node => runAction(replay, node), () => {});
   await expect(replay.locator("#result")).toHaveText("Done");
   await replay.close();
 });
