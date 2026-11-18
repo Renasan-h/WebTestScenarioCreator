@@ -34,3 +34,10 @@ test("visibility assertion node can be configured", async ({ page }) => {
   await page.getByLabel("Locator値").fill("#ready");
   await expect(page.getByLabel("Locator値")).toHaveValue("#ready");
 });
+
+test("text assertion node accepts expected text", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "＋ 文字列確認" }).click();
+  await page.getByLabel("期待する文字列").fill("Welcome");
+  await expect(page.getByLabel("期待する文字列")).toHaveValue("Welcome");
+});
