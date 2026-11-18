@@ -65,7 +65,11 @@ async fn run_scenario(
                 BufReader::new(stderr).lines().map_while(Result::ok).collect::<Vec<_>>().join("\n")
             });
             let write_result = writer.join().map_err(|_| "stdin thread panicked".to_string())?;
-            let status = child.lock().map_err(|e| e.to_string())?.wait().map_err(|e| e.to_string())?;
+            let status = loop {
+                let polled = child.lock().map_err(|e| e.to_string())?.try_wait().map_err(|e| e.to_string())?;
+                if let Some(status) = polled { break status; }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            };
             let _ = output.join();
             let error_text = errors.join().unwrap_or_default();
             write_result?;
