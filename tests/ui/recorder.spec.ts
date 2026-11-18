@@ -20,3 +20,38 @@ test("records real browser click and input while excluding passwords", async ({ 
   expect(actions.some(a => a.type === "fill" && a.selector === "#card")).toBe(false);
   await detach();
 });
+
+test("records navigation after a click and can replay captured actions", async ({ page, browser }) => {
+  await page.route("https://recording.example/**", async route => {
+    const url = new URL(route.request().url());
+    await route.fulfill({ status: 200, contentType: "text/html", body: url.pathname === "/next"
+      ? '<h1 id="result">Done</h1>'
+      : '<a id="next" href="/next">Next</a>' });
+  });
+  await page.goto("https://recording.example/start");
+  const actions: RecordedAction[] = [];
+  const detach = await attachRecorder(page, action => actions.push(action));
+  await page.locator("#next").click();
+  await expect(page.locator("#result")).toHaveText("Done");
+  await expect.poll(() => actions.some(a => a.type === "navigate" && a.url.endsWith("/next"))).toBe(true);
+  const clickIndex = actions.findIndex(a => a.type === "click" && a.selector === "#next");
+  const navigationIndex = actions.findIndex(a => a.type === "navigate" && a.url.endsWith("/next"));
+  expect(clickIndex).toBeGreaterThanOrEqual(0);
+  expect(navigationIndex).toBeGreaterThan(clickIndex);
+  await detach();
+  const replay = await browser.newPage();
+  await replay.route("https://recording.example/**", async route => {
+    const url = new URL(route.request().url());
+    await route.fulfill({ status: 200, contentType: "text/html", body: url.pathname === "/next"
+      ? '<h1 id="result">Done</h1>'
+      : '<a id="next" href="/next">Next</a>' });
+  });
+  await replay.goto("https://recording.example/start");
+  for (const action of actions) {
+    if (action.type === "click") await replay.locator(action.selector).click();
+    if (action.type === "fill") await replay.locator(action.selector).fill(action.value);
+    if (action.type === "navigate") await replay.goto(action.url);
+  }
+  await expect(replay.locator("#result")).toHaveText("Done");
+  await replay.close();
+});
