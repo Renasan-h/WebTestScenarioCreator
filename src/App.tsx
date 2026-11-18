@@ -4,6 +4,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
 import { exportPlaywrightTest } from "../packages/engine/src/export";
+import { toRecordedNode, type RecordedAction } from "../packages/playwright-adapter/src/record";
 import { listen } from "@tauri-apps/api/event";
 import { scenarioSchema, validateGraph, type Scenario, type ScenarioNode } from "../packages/schema/src/scenario";
 
@@ -45,6 +46,7 @@ export default function App() {
   const [logs, setLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [stopping, setStopping] = useState(false);
+  const [recording, setRecording] = useState(false);
   const [message, setMessage] = useState("準備完了");
   const onConnect = useCallback((c: Connection) => setEdges(es => addEdge(c, es)), [setEdges]);
   const selectedNode = scenario.nodes.find(n => n.id === selected);
@@ -100,6 +102,35 @@ export default function App() {
       setMessage("Playwrightコードを出力しました: " + p);
     } catch (e) { setMessage("出力失敗: " + String(e)); }
   }
+  function addRecorded(action: RecordedAction) {
+    setScenario(s => {
+      const n = toRecordedNode(action, s.nodes.length);
+      setNodes(ns => [...ns, { id: n.id, position: n.position, data: { label: n.label } }]);
+      return { ...s, nodes: [...s.nodes, n] };
+    });
+  }
+  async function startRecording() {
+    if (busy) return;
+    const s = snapshot();
+    setBusy(true); setRecording(true); setLogs([]); setMessage("操作を記録中（ブラウザを閉じるか停止してください）");
+    let unlisten: (() => void) | undefined;
+    try {
+      unlisten = await listen<string>("scenario-log", e => {
+        try {
+          const event: unknown = JSON.parse(e.payload);
+          if (typeof event === "object" && event !== null && "kind" in event && event.kind === "recorded-action" && "action" in event) {
+            const action = event.action as RecordedAction;
+            if (action.type === "navigate" || action.type === "click" || action.type === "fill") addRecorded(action);
+            return;
+          }
+        } catch { /* ordinary log */ }
+        setLogs(ls => [...ls, e.payload]);
+      });
+      await invoke("run_scenario", { scenarioJson: JSON.stringify(s), record: true });
+      setMessage("記録終了。ノードを接続して保存してください。");
+    } catch (e) { setMessage("記録終了または失敗: " + String(e)); }
+    finally { unlisten?.(); setBusy(false); setRecording(false); setStopping(false); }
+  }
   async function run() {
     const s = snapshot();
     const errors = validateGraph(s);
@@ -108,7 +139,7 @@ export default function App() {
     let unlisten: (() => void) | undefined;
     try {
       unlisten = await listen<string>("scenario-log", e => setLogs(ls => [...ls, e.payload]));
-      await invoke("run_scenario", { scenarioJson: JSON.stringify(s) });
+      await invoke("run_scenario", { scenarioJson: JSON.stringify(s), record: false });
       setMessage("実行完了");
     } catch (e) { setMessage("実行失敗または停止: " + String(e)); }
     finally { unlisten?.(); setBusy(false); setStopping(false); }
@@ -130,7 +161,8 @@ export default function App() {
         <option value="edge">Edge</option><option value="chromium">Chromium</option>
       </select>
       <label><input type="checkbox" checked={scenario.settings.headless} onChange={e => updateSettings({ headless: e.target.checked })}/> ヘッドレス</label>
-      <button disabled={busy} onClick={run}>{busy ? "実行中…" : "▶ 実行"}</button>
+      <button disabled={busy} onClick={run}>{busy && !recording ? "実行中…" : "▶ 実行"}</button>
+      <button disabled={busy} onClick={startRecording}>{recording ? "記録中…" : "● 記録"}</button>
       <button disabled={!busy || stopping} onClick={stop}>{stopping ? "停止中…" : "■ 停止"}</button>
     </header>
     <main>
