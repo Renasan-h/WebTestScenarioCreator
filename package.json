@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "tauri": "tauri",
     "test": "vitest run",
-    "runner": "tsx sidecar/main.ts"
+    "runner": "tsx sidecar/main.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
@@ -30,6 +31,7 @@
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "vite": "^6.0.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "@playwright/test": "^1.58.0"
   }
 }
