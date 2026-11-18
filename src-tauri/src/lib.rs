@@ -21,17 +21,17 @@ async fn run_scenario(
     app: tauri::AppHandle,
     state: State<'_, RunnerState>,
     scenario_json: String,
+    record: Option<bool>,
 ) -> Result<(), String> {
     // Development-only: the portable release will require a bundled runtime.
     let child_slot = {
         let mut active = state.child.lock().map_err(|e| e.to_string())?;
         if active.is_some() { return Err("別のシナリオが実行中です".into()); }
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
-        let child = Command::new("node")
-            .arg("--import").arg("tsx")
-            .arg("sidecar/main.ts")
-            .arg("--stdin")
-            .current_dir(root)
+        let mut command = Command::new("node");
+        command.arg("--import").arg("tsx").arg("sidecar/main.ts").arg("--stdin");
+        if record.unwrap_or(false) { command.arg("--record"); }
+        let child = command.current_dir(root)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
