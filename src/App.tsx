@@ -122,13 +122,16 @@ export default function App() {
           const event: unknown = JSON.parse(e.payload);
           if (typeof event === "object" && event !== null && "kind" in event && event.kind === "recorded-action" && "action" in event) {
             const action = event.action as RecordedAction;
-            if (action.type === "navigate" || action.type === "click" || action.type === "fill") addRecorded(action);
+            if (action.type === "navigate" || action.type === "click" || action.type === "fill") {
+              try { addRecorded(action); }
+              catch (error) { setMessage("記録ノード追加失敗: " + String(error)); }
+            }
             return;
           }
         } catch { /* ordinary log */ }
         setLogs(ls => [...ls, e.payload]);
       });
-      await invoke("run_scenario", { scenarioJson: JSON.stringify(s), record: true });
+      await invoke("run_scenario", { scenarioJson: JSON.stringify({ ...s, settings: { ...s.settings, headless: false } }), record: true });
       setMessage("記録終了。シナリオを確認して保存してください。");
     } catch (e) { setMessage("記録終了または失敗: " + String(e)); }
     finally { unlisten?.(); recordingGraph.current = null; setBusy(false); setRecording(false); setStopping(false); }
