@@ -26,7 +26,7 @@ export async function attachRecorder(page: Page, onAction: (action: RecordedActi
     const selector = (element) => {
       if (element.id) return '#' + CSS.escape(element.id);
       const testid = element.getAttribute('data-testid');
-      if (testid) return '[data-testid="' + CSS.escape(testid) + '"]';
+      if (testid) return '[data-testid=' + JSON.stringify(testid) + ']';
       const parts = [];
       for (let el = element; el && el.nodeType === 1 && parts.length < 6; el = el.parentElement) {
         let part = el.tagName.toLowerCase();
@@ -38,7 +38,7 @@ export async function attachRecorder(page: Page, onAction: (action: RecordedActi
       return parts.join(' > ');
     };
     document.addEventListener('click', e => {
-      const el = e.target.closest('button, a, input[type="button"], input[type="submit"]');
+      const el = e.target instanceof Element ? e.target.closest('button, a, input[type="button"], input[type="submit"]') : null;
       if (el) window.__scenarioRecord({ type: 'click', selector: selector(el) });
     }, true);
     document.addEventListener('change', e => {
