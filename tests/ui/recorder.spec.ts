@@ -54,3 +54,18 @@ test("records navigation after a click and can replay captured actions", async (
   await expect(replay.locator("#result")).toHaveText("Done");
   await replay.close();
 });
+
+test("records quoted test IDs as valid selectors", async ({ page }) => {
+  await page.goto("about:blank");
+  await page.setContent('<button data-testid=\'say"hello\'>Hello</button>');
+  const actions: RecordedAction[] = [];
+  const detach = await attachRecorder(page, action => actions.push(action));
+  await page.getByRole("button", { name: "Hello" }).click();
+  await expect.poll(() => actions.length).toBe(1);
+  const click = actions[0];
+  expect(click.type).toBe("click");
+  if (click.type === "click") {
+    await expect(page.locator(click.selector)).toHaveCount(1);
+  }
+  await detach();
+});
