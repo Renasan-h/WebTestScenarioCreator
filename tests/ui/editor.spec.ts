@@ -47,3 +47,17 @@ test("record button is available and stop is initially disabled", async ({ page 
   await expect(page.getByRole("button", { name: "● 記録" })).toBeEnabled();
   await expect(page.getByRole("button", { name: "■ 停止" })).toBeDisabled();
 });
+
+test("switches between light and dark themes and persists the choice", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("テーマ").selectOption("dark");
+  await expect(page.locator(".app")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator(".react-flow")).toHaveClass(/dark/);
+  await page.reload();
+  await expect(page.getByLabel("テーマ")).toHaveValue("dark");
+  await expect(page.locator(".app")).toHaveAttribute("data-theme", "dark");
+  await page.getByLabel("テーマ").selectOption("light");
+  await expect(page.locator(".app")).toHaveAttribute("data-theme", "light");
+  await page.reload();
+  await expect(page.getByLabel("テーマ")).toHaveValue("light");
+});
