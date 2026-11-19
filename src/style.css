@@ -81,3 +81,18 @@ footer{padding:10px 22px;background:var(--surface-alt);border-top:1px solid var(
 .branch-label--false{right:5px}
 .screenshot-option{display:flex!important;align-items:center;gap:8px;margin:14px 0;padding:11px;border:1px solid var(--border);border-radius:9px;background:var(--surface-alt);color:var(--text)!important}
 .screenshot-option input{width:16px!important;height:16px;margin:0!important;accent-color:var(--accent)}
+
+/* Larger, easier-to-grab connection handles. */
+.scenario-node .react-flow__handle{width:19px;height:19px;border-width:4px;box-shadow:0 0 0 5px color-mix(in srgb,var(--node-color) 12%,transparent);cursor:crosshair}
+.scenario-node .react-flow__handle:hover{transform:translate(-50%,-50%) scale(1.18);box-shadow:0 0 0 8px color-mix(in srgb,var(--node-color) 18%,transparent)}
+.scenario-node .react-flow__handle-top{top:-11px}
+.scenario-node .react-flow__handle-bottom{bottom:-11px}
+.scenario-node--condition .react-flow__handle-left{left:-11px}
+.scenario-node--condition .react-flow__handle-right{right:-11px}
+.logs{position:relative;min-height:72px;max-height:55vh;overflow:auto;flex-shrink:0}
+.log-resize{position:sticky;top:-14px;z-index:3;display:flex;align-items:center;justify-content:center;height:15px;margin:-14px -22px 10px;cursor:ns-resize;background:var(--surface);border-bottom:1px solid var(--border);touch-action:none}
+.log-resize span{width:46px;height:4px;border-radius:8px;background:var(--border)}
+.log-resize:hover span,.log-resize:focus-visible span{background:var(--accent)}
+main{min-height:0;overflow:hidden}
+.sidebar,.inspector{min-height:0;overflow-y:auto}
+@media(max-width:720px){main{overflow:auto}.sidebar,.inspector{flex-shrink:0}}
