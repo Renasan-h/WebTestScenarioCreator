@@ -19,6 +19,8 @@ async function main() {
   try {
     if (process.argv.includes("--record")) {
       const detach = await attachRecorder(page, action => process.stdout.write(JSON.stringify({ kind: "recorded-action", action }) + "\n"));
+      process.on("SIGINT", () => { void browser.close(); });
+      process.on("SIGTERM", () => { void browser.close(); });
       const firstUrl = scenario.nodes.find(n => n.type === "navigate");
       if (firstUrl?.type === "navigate") await page.goto(firstUrl.config.url);
       else await page.goto("about:blank");
