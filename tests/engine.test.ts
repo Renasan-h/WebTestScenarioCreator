@@ -57,3 +57,25 @@ describe("condition execution", () => {
     });
   }
 });
+
+describe("step debugger", () => {
+  it("waits before each node until the debug gate is released", async () => {
+    const visited: string[] = [];
+    const pending: Array<() => void> = [];
+    const events: string[] = [];
+    const execution = executeScenario(s, async n => { visited.push(n.id); }, e => events.push(e.type), "debug", async () => {
+      await new Promise<void>(resolve => { pending.push(resolve); });
+    });
+    await Promise.resolve();
+    expect(visited).toEqual([]);
+    expect(events).toContain("node.paused");
+    for (const id of ["start", "wait", "end"]) {
+      pending.shift()?.();
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(visited).toContain(id);
+    }
+    await execution;
+    expect(visited).toEqual(["start", "wait", "end"]);
+    expect(events.at(-1)).toBe("run.finished");
+  });
+});
