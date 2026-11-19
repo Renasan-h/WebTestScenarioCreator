@@ -157,3 +157,10 @@ test("keyboard shortcuts do not override text editing", async ({ page }) => {
   await url.press("Control+v");
   await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(1);
 });
+
+test("debug controls are visible and disabled until a paused run", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "🐞 デバッグ開始" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "次のステップ" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "続行" })).toBeDisabled();
+});
