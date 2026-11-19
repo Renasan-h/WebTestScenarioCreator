@@ -189,10 +189,27 @@ function Editor() {
     });
   }
   function changeNodes(changes: NodeChange<Node>[]) {
-    onNodesChange(changes);
+    const allowed = changes.filter(change => change.type !== "remove" ||
+      !scenario.nodes.some(node => node.id === change.id && (node.type === "start" || node.type === "end")));
+    if (allowed.some(change => change.type === "remove")) {
+      checkpoint();
+      const removed = new Set(allowed.filter(change => change.type === "remove").map(change => change.id));
+      setScenario(current => ({
+        ...current,
+        nodes: current.nodes.filter(node => !removed.has(node.id)),
+        edges: current.edges.filter(edge => !removed.has(edge.source) && !removed.has(edge.target)),
+      }));
+      setEdges(current => current.filter(edge => !removed.has(edge.source) && !removed.has(edge.target)));
+      if (selected && removed.has(selected)) setSelected(null);
+    }
+    onNodesChange(allowed);
   }
   function changeEdges(changes: EdgeChange<Edge>[]) {
-    if (changes.some(c => c.type === "remove")) checkpoint();
+    if (changes.some(change => change.type === "remove")) {
+      checkpoint();
+      const removed = new Set(changes.filter(change => change.type === "remove").map(change => change.id));
+      setScenario(current => ({ ...current, edges: current.edges.filter(edge => !removed.has(edge.id)) }));
+    }
     onEdgesChange(changes);
   }
   useEffect(() => {
