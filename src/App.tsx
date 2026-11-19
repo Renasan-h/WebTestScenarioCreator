@@ -38,6 +38,17 @@ function newNode(type: ScenarioNode["type"], position: { x: number; y: number })
   }
 }
 export default function App() {
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    try {
+      const saved = localStorage.getItem("scenario-theme");
+      if (saved === "light" || saved === "dark") return saved;
+    } catch { /* storage unavailable */ }
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  });
+  function changeTheme(value: "light" | "dark") {
+    setTheme(value);
+    try { localStorage.setItem("scenario-theme", value); } catch { /* storage unavailable */ }
+  }
   const [scenario, setScenario] = useState<Scenario>(fresh);
   const initial = useMemo(() => toFlow(scenario), []); // initial state only
   const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
@@ -161,26 +172,27 @@ export default function App() {
   function updateSettings(patch: Partial<Scenario["settings"]>) {
     setScenario(s => ({ ...s, settings: { ...s.settings, ...patch } }));
   }
-  return <div className="app">
-    <header><strong>Web Test Scenario Creator</strong>
+  return <div className="app" data-theme={theme}>
+    <header><strong className="brand"><span className="brand-mark">W</span><span>Web Test Scenario Creator<small>SCENARIO STUDIO</small></span></strong>
       <button disabled={busy} onClick={() => { replace(fresh()); setPath(null); setMessage("新規作成"); }}>新規</button>
       <button disabled={busy} onClick={load}>開く</button><button disabled={busy} onClick={persist}>保存</button><button disabled={busy} onClick={exportTest}>TS出力</button>
       <select aria-label="ブラウザ" disabled={busy} value={scenario.settings.browser} onChange={e => updateSettings({ browser: e.target.value as "edge" | "chromium" })}>
         <option value="edge">Edge</option><option value="chromium">Chromium</option>
       </select>
       <label><input type="checkbox" disabled={busy} checked={scenario.settings.headless} onChange={e => updateSettings({ headless: e.target.checked })}/> ヘッドレス</label>
-      <button disabled={busy} onClick={run}>{busy && !recording ? "実行中…" : "▶ 実行"}</button>
-      <button disabled={busy} onClick={startRecording}>{recording ? "記録中…" : "● 記録"}</button>
-      <button disabled={!busy || stopping} onClick={stop}>{stopping ? "停止中…" : "■ 停止"}</button>
+      <label className="theme-switch">テーマ<select aria-label="テーマ" value={theme} onChange={e => changeTheme(e.target.value as "light" | "dark")}><option value="light">☀ ライト</option><option value="dark">☾ ダーク</option></select></label>
+      <button className="run-button" disabled={busy} onClick={run}>{busy && !recording ? "実行中…" : "▶ 実行"}</button>
+      <button className="record-button" disabled={busy} onClick={startRecording}>{recording ? "記録中…" : "● 記録"}</button>
+      <button className="stop-button" disabled={!busy || stopping} onClick={stop}>{stopping ? "停止中…" : "■ 停止"}</button>
     </header>
     <main>
-      <aside><h3>シナリオ</h3>
+      <aside className="sidebar"><div className="panel-kicker">WORKSPACE</div><h3>シナリオ</h3>
         <input aria-label="シナリオ名" value={scenario.metadata.name} onChange={e => setScenario(s => ({ ...s, metadata: { ...s.metadata, name: e.target.value } }))}/>
-        <h3>ノード追加</h3>{actions.map(a => <button className="palette" key={a.type} disabled={busy} onClick={() => add(a.type)}>＋ {a.name}</button>)}
+        <div className="panel-kicker">BUILD</div><h3>ノード追加</h3>{actions.map(a => <button className="palette" key={a.type} disabled={busy} onClick={() => add(a.type)}>＋ {a.name}</button>)}
         <p>ノードの端からドラッグして接続してください。</p>
       </aside>
-      <section><ReactFlow nodes={nodes} edges={edges} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} onNodesChange={busy ? undefined : onNodesChange} onEdgesChange={busy ? undefined : onEdgesChange} onConnect={busy ? undefined : onConnect} onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)} fitView><Background/><Controls/><MiniMap/></ReactFlow></section>
-      <aside className="inspector"><h3>ノード設定</h3>{selectedNode ? <>
+      <section className="canvas"><div className="canvas-heading"><span className="canvas-dot"/> フローチャート <span className="canvas-count">{nodes.length} ノード · {edges.length} 接続</span></div><ReactFlow colorMode={theme} nodes={nodes} edges={edges} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} onNodesChange={busy ? undefined : onNodesChange} onEdgesChange={busy ? undefined : onEdgesChange} onConnect={busy ? undefined : onConnect} onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)} fitView><Background/><Controls/><MiniMap/></ReactFlow></section>
+      <aside className="inspector"><div className="panel-kicker">PROPERTIES</div><h3>ノード設定</h3>{selectedNode ? <>
         <label>表示名<input value={selectedNode.label} onChange={e => editNode({ ...selectedNode, label: e.target.value })}/></label>
         {selectedNode.type === "navigate" && <label>URL<input value={selectedNode.config.url} onChange={e => editNode({ ...selectedNode, config: { url: e.target.value } })}/></label>}
         {(selectedNode.type === "click" || selectedNode.type === "fill" || selectedNode.type === "assertVisible" || selectedNode.type === "assertText") && <>
@@ -200,7 +212,7 @@ export default function App() {
         <button disabled={busy} onClick={removeSelected}>ノード削除</button>
       </> : <p>ノードを選択してください。</p>}</aside>
     </main>
-    <div className="logs"><strong>実行ログ</strong><pre>{logs.join("\n") || "実行するとログが表示されます。"}</pre></div>
+    <div className="logs"><strong><span className="log-indicator"/> 実行ログ</strong><pre>{logs.join("\n") || "実行するとログが表示されます。"}</pre></div>
     <footer>{message}</footer>
   </div>;
 }
