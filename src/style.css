@@ -96,3 +96,9 @@ footer{padding:10px 22px;background:var(--surface-alt);border-top:1px solid var(
 main{min-height:0;overflow:hidden}
 .sidebar,.inspector{min-height:0;overflow-y:auto}
 @media(max-width:720px){main{overflow:auto}.sidebar,.inspector{flex-shrink:0}}
+
+/* Debug execution states: visible on the canvas without changing node layout. */
+.react-flow__node.debug-node--paused .scenario-node{outline:3px solid #f59e0b;outline-offset:4px}
+.react-flow__node.debug-node--running .scenario-node{outline:3px solid #3b82f6;outline-offset:4px}
+.react-flow__node.debug-node--passed .scenario-node{outline:3px solid #22c55e;outline-offset:4px}
+.react-flow__node.debug-node--failed .scenario-node{outline:3px solid #ef4444;outline-offset:4px}
