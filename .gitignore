@@ -7,3 +7,4 @@ src-tauri/target/
 !*.example
 playwright-report/
 test-results/
+/screenshots/
