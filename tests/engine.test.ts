@@ -63,7 +63,8 @@ describe("step debugger", () => {
     const visited: string[] = [];
     const pending: Array<() => void> = [];
     const events: string[] = [];
-    const execution = executeScenario(s, async n => { visited.push(n.id); }, e => events.push(e.type), "debug", async () => {
+    const execution = executeScenario(s, async n => { visited.push(n.id); }, e => events.push(e.type), "debug", async (_node, notifyPaused) => {
+      notifyPaused();
       await new Promise<void>(resolve => { pending.push(resolve); });
     });
     await Promise.resolve();
