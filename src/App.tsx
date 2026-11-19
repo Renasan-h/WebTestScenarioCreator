@@ -65,6 +65,9 @@ function Editor() {
   const [busy, setBusy] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [debugging, setDebugging] = useState(false);
+  const [pausedNode, setPausedNode] = useState<string | null>(null);
+  const [nodeStatus, setNodeStatus] = useState<Record<string, "running" | "passed" | "failed" | "paused">>({});
   const recordingGraph = useRef<Scenario | null>(null);
   const [message, setMessage] = useState("準備完了");
   const [undoStack, setUndoStack] = useState<Scenario[]>([]);
@@ -236,19 +239,45 @@ function Editor() {
     } catch (e) { setMessage(stopRequested.current ? "記録を停止しました: " + String(e) : "記録失敗: " + String(e)); }
     finally { unlisten?.(); recordingGraph.current = null; setBusy(false); setRecording(false); setStopping(false); }
   }
-  async function run() {
+  async function run(debug = false) {
     const s = snapshot();
     const errors = validateGraph(s);
     if (errors.length) { setMessage(errors.join(" / ")); return; }
     stopRequested.current = false;
-    setBusy(true); setLogs([]); setMessage("実行中");
+    setBusy(true); setDebugging(debug); setPausedNode(null); setNodeStatus({}); setLogs([]); setMessage(debug ? "デバッグ開始中" : "実行中");
     let unlisten: (() => void) | undefined;
     try {
-      unlisten = await listen<string>("scenario-log", e => setLogs(ls => [...ls, e.payload]));
-      await invoke("run_scenario", { scenarioJson: JSON.stringify(s), record: false });
+      unlisten = await listen<string>("scenario-log", e => {
+        setLogs(ls => [...ls, e.payload]);
+        try {
+          const event = JSON.parse(e.payload) as { type?: string; nodeId?: string; message?: string };
+          if (event.nodeId && event.type === "node.paused") {
+            setPausedNode(event.nodeId);
+            setNodeStatus(status => ({ ...status, [event.nodeId!]: "paused" }));
+            setMessage("一時停止中: 次のステップを実行できます");
+          } else if (event.nodeId && event.type === "node.started") {
+            setPausedNode(null);
+            setNodeStatus(status => ({ ...status, [event.nodeId!]: "running" }));
+          } else if (event.nodeId && event.type === "node.completed") {
+            setNodeStatus(status => ({ ...status, [event.nodeId!]: "passed" }));
+          } else if (event.nodeId && event.type === "node.failed") {
+            setNodeStatus(status => ({ ...status, [event.nodeId!]: "failed" }));
+            setMessage("ノード失敗: " + (event.message ?? ""));
+          }
+        } catch { /* non-JSON log */ }
+      });
+      await invoke("run_scenario", { scenarioJson: JSON.stringify(s), record: false, debug });
       setMessage(stopRequested.current ? "実行を停止しました" : "実行完了");
     } catch (e) { setMessage(stopRequested.current ? "実行を停止しました: " + String(e) : "実行失敗: " + String(e)); }
-    finally { unlisten?.(); setBusy(false); setStopping(false); }
+    finally { unlisten?.(); setBusy(false); setStopping(false); setDebugging(false); setPausedNode(null); }
+  }
+  async function debugCommand(command: "STEP" | "CONTINUE") {
+    if (!debugging || !pausedNode) return;
+    try {
+      setPausedNode(null);
+      await invoke("debug_control", { command });
+      setMessage(command === "STEP" ? "1ステップ実行中" : "連続実行中");
+    } catch (e) { setMessage("デバッグ操作失敗: " + String(e)); }
   }
   async function stop() {
     if (!busy || stopping) return;
@@ -270,6 +299,7 @@ function Editor() {
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", stop, { once: true });
   }, [logHeight]);
+  const displayNodes = nodes.map(n => ({ ...n, className: nodeStatus[n.id] ? "debug-node debug-node--" + nodeStatus[n.id] : undefined }));
   return <div className="app" data-theme={theme}>
     <header><strong className="brand"><span className="brand-mark">W</span><span>Web Test Scenario Creator<small>SCENARIO STUDIO</small></span></strong>
       <button disabled={busy} onClick={() => { replace(fresh()); setUndoStack([]); setRedoStack([]); setPath(null); setMessage("新規作成"); }}>新規</button>
@@ -280,7 +310,10 @@ function Editor() {
       </select>
       <label><input type="checkbox" disabled={busy} checked={scenario.settings.headless} onChange={e => updateSettings({ headless: e.target.checked })}/> ヘッドレス</label>
       <label className="theme-switch">テーマ<select aria-label="テーマ" value={theme} onChange={e => changeTheme(e.target.value as "light" | "dark")}><option value="light">☀ ライト</option><option value="dark">☾ ダーク</option></select></label>
-      <button className="run-button" disabled={busy} onClick={run}>{busy && !recording ? "実行中…" : "▶ 実行"}</button>
+      <button className="run-button" disabled={busy} onClick={() => run(false)}>{busy && !recording ? "実行中…" : "▶ 実行"}</button>
+      <button disabled={busy} onClick={() => run(true)}>🐞 デバッグ開始</button>
+      <button disabled={!debugging || !pausedNode} onClick={() => debugCommand("STEP")}>次のステップ</button>
+      <button disabled={!debugging || !pausedNode} onClick={() => debugCommand("CONTINUE")}>続行</button>
       <button className="record-button" disabled={busy} onClick={startRecording}>{recording ? "記録中…" : "● 記録"}</button>
       <button className="stop-button" disabled={!busy || stopping} onClick={stop}>{stopping ? "停止中…" : "■ 停止"}</button>
     </header>
@@ -290,7 +323,7 @@ function Editor() {
         <div className="panel-kicker">BUILD</div><h3>ノード追加</h3>{actions.map(a => <button className="palette" key={a.type} disabled={busy} onClick={() => add(a.type)}>＋ {a.name}</button>)}
         <p>ノードの端からドラッグして接続してください。</p>
       </aside>
-      <section className="canvas"><div className="canvas-heading"><span className="canvas-dot"/> フローチャート <span className="canvas-count">{nodes.length} ノード · {edges.length} 接続</span></div><ReactFlow colorMode={theme} nodeTypes={nodeTypes} nodes={nodes} edges={edges} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} onNodesChange={busy ? undefined : changeNodes} onEdgesChange={busy ? undefined : changeEdges} onNodeDragStart={busy ? undefined : () => checkpoint()} onConnect={busy ? undefined : onConnect} onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)} fitView><Background/><Controls/><MiniMap/></ReactFlow></section>
+      <section className="canvas"><div className="canvas-heading"><span className="canvas-dot"/> フローチャート <span className="canvas-count">{nodes.length} ノード · {edges.length} 接続</span></div><ReactFlow colorMode={theme} nodeTypes={nodeTypes} nodes={displayNodes} edges={edges} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} onNodesChange={busy ? undefined : changeNodes} onEdgesChange={busy ? undefined : changeEdges} onNodeDragStart={busy ? undefined : () => checkpoint()} onConnect={busy ? undefined : onConnect} onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)} fitView><Background/><Controls/><MiniMap/></ReactFlow></section>
       <aside className="inspector"><div className="panel-kicker">PROPERTIES</div><h3>ノード設定</h3>{selectedNode ? <>
         <label>表示名<input value={selectedNode.label} onChange={e => editNode({ ...selectedNode, label: e.target.value })}/></label>
         {selectedNode.type === "navigate" && <label>URL<input value={selectedNode.config.url} onChange={e => editNode({ ...selectedNode, config: { url: e.target.value } })}/></label>}
