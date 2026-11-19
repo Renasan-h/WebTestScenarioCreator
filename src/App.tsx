@@ -63,6 +63,8 @@ function Editor() {
   });
   function changeDirectory(next: string) {
     setDirectory(next);
+    setPath(null);
+    replace(fresh());
     try { localStorage.setItem("scenario-directory", next); } catch { /* unavailable */ }
   }
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; position: { x: number; y: number }; nodeId?: string; edgeId?: string } | null>(null);
@@ -115,7 +117,7 @@ function Editor() {
   }
   function copySelected() {
     const selectedIds = new Set(nodes.filter(n => n.selected).map(n => n.id));
-    if (selected) selectedIds.add(selected);
+    if (selectedIds.size === 0 && selected) selectedIds.add(selected);
     const copied = snapshot().nodes.filter(n => selectedIds.has(n.id) && n.type !== "start" && n.type !== "end");
     if (!copied.length) { setMessage("コピー可能なノードを選択してください"); return; }
     clipboard.current = structuredClone(copied);
@@ -147,7 +149,7 @@ function Editor() {
   }
   function deleteSelection() {
     const nodeIds = nodes.filter(n => n.selected).map(n => n.id);
-    if (selected && !nodeIds.includes(selected)) nodeIds.push(selected);
+    if (nodeIds.length === 0 && selected) nodeIds.push(selected);
     removeObjects(nodeIds, edges.filter(e => e.selected).map(e => e.id));
   }
   function openContextMenu(event: { preventDefault(): void; clientX: number; clientY: number }, nodeId?: string, edgeId?: string) {
@@ -194,6 +196,7 @@ function Editor() {
     setScenario(s); const flow = toFlow(s); setNodes(flow.nodes); setEdges(flow.edges); setSelected(null);
   }
   function add(type: ScenarioNode["type"], at?: { x: number; y: number }) {
+    setContextMenu(null);
     checkpoint();
     const viewport = document.querySelector(".canvas .react-flow")?.getBoundingClientRect();
     const center = viewport
