@@ -186,3 +186,24 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running scenario studio");
 }
+
+#[cfg(test)]
+mod scenario_directory_tests {
+    use super::*;
+
+    #[test]
+    fn finds_nested_pflow_files_and_uses_metadata_name() {
+        let root = std::env::temp_dir().join(format!("scenario-index-{}", std::process::id()));
+        let nested = root.join("認証");
+        std::fs::create_dir_all(&nested).unwrap();
+        std::fs::write(root.join("root.pflow"), r#"{"metadata":{"name":"トップ"}} "#).unwrap();
+        std::fs::write(nested.join("login.PFLOW"), r#"{"metadata":{"name":"ログイン"}} "#).unwrap();
+        std::fs::write(nested.join("notes.txt"), "not a scenario").unwrap();
+        let mut results = Vec::new();
+        collect_scenario_files(&root, &root, 0, &mut results).unwrap();
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().any(|item| item.name == "トップ" && item.category == "未分類"));
+        assert!(results.iter().any(|item| item.name == "ログイン" && item.category == "認証"));
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+}
