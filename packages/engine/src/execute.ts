@@ -7,13 +7,13 @@ export type ExecutionEvent =
   | { type: "node.completed"; runId: string; nodeId: string; durationMs: number }
   | { type: "node.failed"; runId: string; nodeId: string; message: string }
   | { type: "run.finished"; runId: string; status: "completed" | "failed" };
-export type ExecuteAction = (node: ScenarioNode) => Promise<void>;
+export type ExecuteAction = (node: ScenarioNode) => Promise<boolean | void>;
 
 export async function executeScenario(s: Scenario, action: ExecuteAction, emit: (e: ExecutionEvent) => void, runId = crypto.randomUUID()): Promise<void> {
   const problems = validateGraph(s);
   if (problems.length) throw new Error(problems.join("; "));
   const nodes = new Map(s.nodes.map(n => [n.id, n]));
-  const next = new Map(s.edges.map(e => [e.source, e.target]));
+  const next = new Map(s.edges.filter(e => e.sourceHandle !== "true" && e.sourceHandle !== "false").map(e => [e.source, e.target]));
   let id: string | undefined = s.nodes.find(n => n.type === "start")!.id;
   emit({ type: "run.started", runId });
   while (id) {
@@ -21,7 +21,13 @@ export async function executeScenario(s: Scenario, action: ExecuteAction, emit: 
     const started = Date.now();
     emit({ type: "node.started", runId, nodeId: id });
     try {
-      await action(node);
+      const result = await action(node);
+      if (node.type === "condition") {
+        const branch = result === true ? "true" : "false";
+        const edge = s.edges.find(e => e.source === node.id && e.sourceHandle === branch);
+        if (!edge) throw new Error("Missing condition branch: " + branch);
+        next.set(node.id, edge.target);
+      }
       emit({ type: "node.completed", runId, nodeId: id, durationMs: Date.now() - started });
     } catch (error) {
       emit({ type: "node.failed", runId, nodeId: id, message: String(error) });
