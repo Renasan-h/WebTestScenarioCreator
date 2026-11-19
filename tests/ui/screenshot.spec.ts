@@ -22,7 +22,7 @@ test("captures a PNG after an action and evaluates both condition outcomes", asy
       config: { check: "visible" as const, locator: { strategy: "css" as const, value: "#ready" } },
     };
     expect(await runAction(page, condition)).toBe(true);
-    expect(await runAction(page, { ...condition, config: { ...condition.config, locator: { strategy: "css", value: "#absent" } } })).toBe(false);
+    expect(await runAction(page, { ...condition, config: { ...condition.config, locator: { strategy: "css" as const, value: "#absent" } } })).toBe(false);
   } finally {
     for (const name of (await readdir(directory).catch(() => [])).filter(name => !before.has(name) && name.endsWith("-" + nodeId + ".png"))) {
       await rm(resolve(directory, name), { force: true });
