@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
+import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import type { Scenario } from "../../packages/schema/src/scenario";
@@ -29,8 +30,17 @@ test("STOP closes the recording browser and exits cleanly", async () => {
   const exit = once(child, "exit");
   try {
     child.stdin.write(JSON.stringify(scenario) + "\n");
-    // Allow browser startup before issuing STOP, so the recording lifecycle is exercised.
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Wait for the recorder to finish browser initialization before stopping it.
+    const output = createInterface({ input: child.stdout });
+    await Promise.race([
+      (async () => {
+        for await (const line of output) {
+          if (JSON.parse(line).kind === "recorder-ready") return;
+        }
+        throw new Error("Recorder exited before ready: " + stderr);
+      })(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Recorder not ready: " + stderr)), 15000)),
+    ]);
     child.stdin.write("STOP\n");
     const [code, signal] = await Promise.race([
       exit,
