@@ -48,3 +48,26 @@ aside p{font-size:12px;line-height:1.75;color:var(--muted)}
 footer{padding:10px 22px;background:var(--surface-alt);border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
 @media(max-width:1100px){header{gap:7px;padding:10px 14px}header .brand{min-width:100%;margin-bottom:2px}aside{width:205px;padding:18px 12px}aside.inspector{width:225px}}
 @media(max-width:720px){main{flex-direction:column;overflow:auto}aside,aside.inspector{width:100%;max-height:190px;border:0;border-bottom:1px solid var(--border)}.canvas{min-height:320px}.logs{height:115px}header .brand{min-width:0}}
+
+
+/* Distinct flow-node cards with consistent handles, hierarchy, and theme support. */
+.react-flow__node-scenario{width:204px;border:0!important;background:transparent!important;padding:0!important;box-shadow:none!important;border-radius:16px}
+.scenario-node{--node-color:#6686f5;position:relative;min-height:106px;padding:15px 17px 14px;background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--node-color);border-radius:14px;box-shadow:0 8px 24px rgba(19,36,72,.10);transition:box-shadow .15s,border-color .15s,transform .15s;text-align:left}
+.react-flow__node-scenario:hover .scenario-node{box-shadow:0 12px 30px rgba(19,36,72,.17);transform:translateY(-1px)}
+.react-flow__node-scenario.selected .scenario-node{border-color:var(--node-color);box-shadow:0 0 0 3px color-mix(in srgb,var(--node-color) 20%,transparent),0 12px 30px rgba(19,36,72,.13)}
+.scenario-node--start{--node-color:#27b68e;border-radius:26px}
+.scenario-node--end{--node-color:#e67882;border-radius:26px}
+.scenario-node--navigate{--node-color:#5d88f2}
+.scenario-node--click{--node-color:#a17aef}
+.scenario-node--fill{--node-color:#3cafa8}
+.scenario-node--wait{--node-color:#e2a13f}
+.scenario-node--assertVisible,.scenario-node--assertText{--node-color:#e47fbb}
+.scenario-node__top{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.scenario-node__icon{display:grid;place-items:center;width:29px;height:29px;flex:none;border-radius:9px;background:color-mix(in srgb,var(--node-color) 15%,var(--surface));color:var(--node-color);font-size:16px;font-weight:800}
+.scenario-node__category{color:var(--node-color);font-size:9px;letter-spacing:.13em;font-weight:800}
+.scenario-node__label{font-size:13px;font-weight:750;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scenario-node__detail{margin-top:5px;font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scenario-node .react-flow__handle{width:11px;height:11px;background:var(--surface);border:3px solid var(--node-color);border-radius:50%}
+.scenario-node .react-flow__handle-top{top:-8px}
+.scenario-node .react-flow__handle-bottom{bottom:-8px}
+.app[data-theme="dark"] .scenario-node{box-shadow:0 8px 24px rgba(0,0,0,.24)}
