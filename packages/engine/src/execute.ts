@@ -10,7 +10,7 @@ export type ExecutionEvent =
   | { type: "run.finished"; runId: string; status: "completed" | "failed" };
 export type ExecuteAction = (node: ScenarioNode) => Promise<boolean | void>;
 
-export async function executeScenario(s: Scenario, action: ExecuteAction, emit: (e: ExecutionEvent) => void, runId = crypto.randomUUID(), beforeNode?: (node: ScenarioNode) => Promise<void>): Promise<void> {
+export async function executeScenario(s: Scenario, action: ExecuteAction, emit: (e: ExecutionEvent) => void, runId = crypto.randomUUID(), beforeNode?: (node: ScenarioNode, notifyPaused: () => void) => Promise<void>): Promise<void> {
   const problems = validateGraph(s);
   if (problems.length) throw new Error(problems.join("; "));
   const nodes = new Map(s.nodes.map(n => [n.id, n]));
@@ -20,8 +20,7 @@ export async function executeScenario(s: Scenario, action: ExecuteAction, emit: 
   while (id) {
     const node = nodes.get(id)!;
     if (beforeNode) {
-      emit({ type: "node.paused", runId, nodeId: id });
-      await beforeNode(node);
+      await beforeNode(node, () => emit({ type: "node.paused", runId, nodeId: id }));
     }
     const started = Date.now();
     emit({ type: "node.started", runId, nodeId: id });
