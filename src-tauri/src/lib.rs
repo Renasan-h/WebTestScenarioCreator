@@ -3,6 +3,79 @@ use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, State};
 
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ScenarioEntry {
+    path: String,
+    name: String,
+    category: String,
+}
+
+fn is_scenario_file(path: &std::path::Path) -> bool {
+    path.extension().is_some_and(|extension| extension.eq_ignore_ascii_case("pflow"))
+}
+
+fn collect_scenario_files(
+    base: &std::path::Path,
+    folder: &std::path::Path,
+    depth: usize,
+    results: &mut Vec<ScenarioEntry>,
+) -> Result<(), String> {
+    if depth > 8 || results.len() >= 2000 { return Ok(()); }
+    let entries = std::fs::read_dir(folder).map_err(|error| error.to_string())?;
+    for entry in entries {
+        let entry = entry.map_err(|error| error.to_string())?;
+        let kind = entry.file_type().map_err(|error| error.to_string())?;
+        let path = entry.path();
+        if kind.is_dir() {
+            if !entry.file_name().to_string_lossy().starts_with('.') {
+                collect_scenario_files(base, &path, depth + 1, results)?;
+            }
+        } else if kind.is_file() && is_scenario_file(&path) {
+            let fallback = path.file_stem().unwrap_or_default().to_string_lossy().into_owned();
+            let name = std::fs::read_to_string(&path).ok()
+                .and_then(|content| serde_json::from_str::<serde_json::Value>(&content).ok())
+                .and_then(|value| value.get("metadata")?.get("name")?.as_str().map(String::from))
+                .filter(|value| !value.is_empty())
+                .unwrap_or(fallback);
+            let category = path.parent().unwrap_or(base).strip_prefix(base)
+                .unwrap_or(std::path::Path::new(""))
+                .to_string_lossy().replace('\\', "/");
+            results.push(ScenarioEntry {
+                path: path.to_string_lossy().into_owned(),
+                name,
+                category: if category.is_empty() { "未分類".into() } else { category },
+            });
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn list_scenario_files(directory: String) -> Result<Vec<ScenarioEntry>, String> {
+    let base = std::fs::canonicalize(&directory).map_err(|error| error.to_string())?;
+    if !base.is_dir() { return Err("ディレクトリを選択してください".into()); }
+    let mut results = Vec::new();
+    collect_scenario_files(&base, &base, 0, &mut results)?;
+    results.sort_by(|a, b| a.category.cmp(&b.category).then_with(|| a.name.cmp(&b.name)));
+    Ok(results)
+}
+
+#[tauri::command]
+async fn read_scenario_file(path: String) -> Result<String, String> {
+    let file = std::path::Path::new(&path);
+    if !is_scenario_file(file) { return Err(".pflow ファイルを選択してください".into()); }
+    std::fs::read_to_string(file).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn write_scenario_file(path: String, content: String) -> Result<(), String> {
+    let file = std::path::Path::new(&path);
+    if !is_scenario_file(file) { return Err(".pflow ファイルのみ保存できます".into()); }
+    std::fs::write(file, content).map_err(|error| error.to_string())
+}
+
 #[derive(Default)]
 struct RunnerState {
     child: Mutex<Option<Arc<Mutex<Child>>>>,
@@ -109,7 +182,7 @@ pub fn run() {
         .manage(RunnerState::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .invoke_handler(tauri::generate_handler![run_scenario, stop_scenario, debug_control])
+        .invoke_handler(tauri::generate_handler![run_scenario, stop_scenario, debug_control, list_scenario_files, read_scenario_file, write_scenario_file])
         .run(tauri::generate_context!())
         .expect("error while running scenario studio");
 }
