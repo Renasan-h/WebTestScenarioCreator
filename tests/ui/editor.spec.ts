@@ -73,3 +73,16 @@ test("renders custom start/end nodes and updates action preview", async ({ page 
   await page.getByLabel("テーマ").selectOption("dark");
   await expect(page.locator('[data-node-kind="navigate"]')).toBeVisible();
 });
+
+test("configures condition node and per-node screenshot", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "＋ 条件分岐" }).click();
+  await expect(page.locator('[data-node-kind="condition"]')).toBeVisible();
+  await expect(page.locator('.react-flow__handle[data-handleid="true"]')).toBeVisible();
+  await expect(page.locator('.react-flow__handle[data-handleid="false"]')).toBeVisible();
+  await page.getByLabel("条件").selectOption("textContains");
+  await page.getByLabel("比較文字列").fill("Ready");
+  await page.getByLabel("スクリーンショットを撮影").check();
+  await expect(page.getByLabel("スクリーンショットを撮影")).toBeChecked();
+  await expect(page.locator('[data-node-kind="condition"]')).toContainText("Ready");
+});
