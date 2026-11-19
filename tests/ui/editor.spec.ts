@@ -239,3 +239,19 @@ test("marquee selection supports multiple selected nodes", async ({ page }) => {
   await page.mouse.up();
   await expect(page.locator(".canvas .react-flow__node.selected")).toHaveCount(2);
 });
+
+test("copies multiple selected action nodes as a group", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  await page.getByRole("button", { name: "＋ 待機" }).click();
+  await page.locator('[data-node-kind="navigate"]').click();
+  await page.locator('[data-node-kind="wait"]').click({ modifiers: ["Shift"] });
+  await expect(page.locator(".canvas .react-flow__node.selected")).toHaveCount(2);
+  await page.getByRole("button", { name: "コピー", exact: true }).click();
+  await page.getByRole("button", { name: "貼り付け", exact: true }).click();
+  await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(2);
+  await expect(page.locator('[data-node-kind="wait"]')).toHaveCount(2);
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(1);
+  await expect(page.locator('[data-node-kind="wait"]')).toHaveCount(1);
+});
