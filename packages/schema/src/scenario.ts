@@ -7,7 +7,7 @@ export const locatorSchema = z.discriminatedUnion("strategy", [
   z.object({ strategy: z.literal("role"), role: z.string().min(1), name: z.string().optional() }),
 ]);
 
-const base = { id: z.string().min(1), label: z.string(), position: z.object({ x: z.number(), y: z.number() }) };
+const base = { screenshot: z.boolean().optional(), id: z.string().min(1), label: z.string(), position: z.object({ x: z.number(), y: z.number() }) };
 const node = z.discriminatedUnion("type", [
   z.object({ ...base, type: z.literal("start"), config: z.object({}) }),
   z.object({ ...base, type: z.literal("end"), config: z.object({}) }),
@@ -16,6 +16,7 @@ const node = z.discriminatedUnion("type", [
   z.object({ ...base, type: z.literal("fill"), config: z.object({ locator: locatorSchema, value: z.string(), timeoutMs: z.number().positive().optional() }) }),
   z.object({ ...base, type: z.literal("assertText"), config: z.object({ locator: locatorSchema, expected: z.string() }) }),
   z.object({ ...base, type: z.literal("assertVisible"), config: z.object({ locator: locatorSchema }) }),
+  z.object({ ...base, type: z.literal("condition"), config: z.object({ locator: locatorSchema, check: z.enum(["visible", "textContains"]), expected: z.string().optional() }) }),
   z.object({ ...base, type: z.literal("wait"), config: z.object({ durationMs: z.number().int().nonnegative() }) }),
 ]);
 
@@ -38,25 +39,39 @@ export function validateGraph(s: Scenario): string[] {
   if (ids.size !== s.nodes.length) errors.push("Duplicate node IDs");
   const starts = s.nodes.filter(n => n.type === "start");
   if (starts.length !== 1) errors.push("Exactly one start node required");
-  for (const e of s.edges) if (!ids.has(e.source) || !ids.has(e.target)) errors.push("Dangling edge: " + e.id);
-  const outgoing = new Map<string, string[]>();
-  for (const e of s.edges) outgoing.set(e.source, [...(outgoing.get(e.source) ?? []), e.target]);
+  const outgoing = new Map<string, ScenarioEdge[]>();
+  for (const e of s.edges) {
+    if (!ids.has(e.source) || !ids.has(e.target)) errors.push("Dangling edge: " + e.id);
+    outgoing.set(e.source, [...(outgoing.get(e.source) ?? []), e]);
+  }
   for (const n of s.nodes) {
-    const count = outgoing.get(n.id)?.length ?? 0;
-    if (n.type === "end" && count) errors.push("End node has outgoing edge");
-    if (n.type !== "end" && count !== 1) errors.push("Node must have exactly one outgoing edge: " + n.id);
+    const edges = outgoing.get(n.id) ?? [];
+    if (n.type === "end" && edges.length) errors.push("End node has outgoing edge");
+    if (n.type === "condition") {
+      if (edges.length !== 2 || new Set(edges.map(e => e.sourceHandle)).size !== 2 ||
+          !edges.some(e => e.sourceHandle === "true") || !edges.some(e => e.sourceHandle === "false"))
+        errors.push("Condition requires true and false outgoing edges: " + n.id);
+      if (n.config.check === "textContains" && !n.config.expected)
+        errors.push("Condition text must not be empty: " + n.id);
+    } else if (n.type !== "end" && edges.length !== 1) errors.push("Node must have exactly one outgoing edge: " + n.id);
     if (n.type === "start" && s.edges.some(e => e.target === n.id)) errors.push("Start node has incoming edge");
   }
   if (starts.length === 1) {
-    const seen = new Set<string>();
-    let current: string | undefined = starts[0].id;
-    while (current) {
-      if (seen.has(current)) { errors.push("Cycle detected"); break; }
-      seen.add(current);
-      current = outgoing.get(current)?.[0];
+    const visited = new Set<string>();
+    const active = new Set<string>();
+    let hasEnd = false;
+    function walk(id: string) {
+      if (active.has(id)) { errors.push("Cycle detected"); return; }
+      if (visited.has(id)) return;
+      visited.add(id);
+      active.add(id);
+      if (s.nodes.find(n => n.id === id)?.type === "end") hasEnd = true;
+      for (const e of outgoing.get(id) ?? []) if (ids.has(e.target)) walk(e.target);
+      active.delete(id);
     }
-    for (const n of s.nodes) if (!seen.has(n.id)) errors.push("Unreachable node: " + n.id);
-    if (!s.nodes.some(n => n.type === "end" && seen.has(n.id))) errors.push("Reachable end node required");
+    walk(starts[0].id);
+    for (const n of s.nodes) if (!visited.has(n.id)) errors.push("Unreachable node: " + n.id);
+    if (!hasEnd) errors.push("Reachable end node required");
   }
   return errors;
 }
