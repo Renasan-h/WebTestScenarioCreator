@@ -1,17 +1,9 @@
 name: CI
 
+# 開発中は無料枠を節約するため手動実行のみ。
+# GitHub の Actions タブから「Run workflow」で実行できます。
 on:
-  push:
-    branches:
-      - main
-      - develop
-    paths-ignore:
-      - "**/*.md"
-      - "**/*.mdx"
-      - "docs/**"
-      - "**/*.txt"
-      - "LICENSE"
-      - ".editorconfig"
+  workflow_dispatch:
 
 permissions:
   contents: read
