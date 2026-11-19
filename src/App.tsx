@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { ReactFlow, Background, Controls, MiniMap, addEdge, useNodesState, useEdgesState, type Connection, type Node, type Edge, useReactFlow, ReactFlowProvider } from "@xyflow/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ReactFlow, Background, Controls, MiniMap, addEdge, useNodesState, useEdgesState, type Connection, type Node, type Edge, type NodeChange, type EdgeChange, useReactFlow, ReactFlowProvider } from "@xyflow/react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
@@ -67,7 +67,80 @@ function Editor() {
   const [recording, setRecording] = useState(false);
   const recordingGraph = useRef<Scenario | null>(null);
   const [message, setMessage] = useState("準備完了");
-  const onConnect = useCallback((c: Connection) => setEdges(es => addEdge(c, es)), [setEdges]);
+  const [undoStack, setUndoStack] = useState<Scenario[]>([]);
+  const [redoStack, setRedoStack] = useState<Scenario[]>([]);
+  const clipboard = useRef<ScenarioNode[]>([]);
+  const lastPaste = useRef(0);
+  const historyLock = useRef(false);
+  function checkpoint() {
+    if (historyLock.current) return;
+    const state = snapshot();
+    setUndoStack(stack => [...stack.slice(-99), state]);
+    setRedoStack([]);
+  }
+  function restore(state: Scenario) {
+    historyLock.current = true;
+    replace(state);
+    queueMicrotask(() => { historyLock.current = false; });
+  }
+  function undo() {
+    if (busy || !undoStack.length) return;
+    const previous = undoStack[undoStack.length - 1];
+    setUndoStack(stack => stack.slice(0, -1));
+    setRedoStack(stack => [...stack, snapshot()]);
+    restore(previous);
+    setMessage("元に戻しました");
+  }
+  function redo() {
+    if (busy || !redoStack.length) return;
+    const next = redoStack[redoStack.length - 1];
+    setRedoStack(stack => stack.slice(0, -1));
+    setUndoStack(stack => [...stack, snapshot()]);
+    restore(next);
+    setMessage("やり直しました");
+  }
+  function copySelected() {
+    const selectedIds = new Set(nodes.filter(n => n.selected).map(n => n.id));
+    if (selected) selectedIds.add(selected);
+    const copied = snapshot().nodes.filter(n => selectedIds.has(n.id) && n.type !== "start" && n.type !== "end");
+    if (!copied.length) { setMessage("コピー可能なノードを選択してください"); return; }
+    clipboard.current = structuredClone(copied);
+    lastPaste.current = 0;
+    setMessage(copied.length + "個のノードをコピーしました");
+  }
+  function paste() {
+    if (busy || !clipboard.current.length) return;
+    checkpoint();
+    lastPaste.current++;
+    const offset = lastPaste.current * 36;
+    const copies = clipboard.current.map(n => ({ ...structuredClone(n), id: crypto.randomUUID(), position: { x: n.position.x + offset, y: n.position.y + offset } }));
+    setScenario(s => ({ ...s, nodes: [...s.nodes, ...copies] }));
+    setNodes(ns => [...ns.map(n => ({ ...n, selected: false })), ...toFlow({ ...scenario, nodes: copies, edges: [] }).nodes.map(n => ({ ...n, selected: true }))]);
+    setSelected(copies.length === 1 ? copies[0].id : null);
+    setMessage(copies.length + "個のノードを貼り付けました");
+  }
+  const onConnect = useCallback((c: Connection) => { checkpoint(); setEdges(es => addEdge(c, es)); }, [scenario, nodes, edges]);
+  function changeNodes(changes: NodeChange<Node>[]) {
+    onNodesChange(changes);
+  }
+  function changeEdges(changes: EdgeChange<Edge>[]) {
+    if (changes.some(c => c.type === "remove")) checkpoint();
+    onEdgesChange(changes);
+  }
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input,textarea,select,[contenteditable=true]")) return;
+      const key = e.key.toLowerCase();
+      if (key === "z") { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
+      else if (key === "y") { e.preventDefault(); redo(); }
+      else if (key === "c") { e.preventDefault(); copySelected(); }
+      else if (key === "v") { e.preventDefault(); paste(); }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
   const selectedNode = scenario.nodes.find(n => n.id === selected);
   function snapshot(): Scenario {
     return { ...scenario, metadata: { ...scenario.metadata, updatedAt: stamp() },
@@ -78,6 +151,7 @@ function Editor() {
     setScenario(s); const flow = toFlow(s); setNodes(flow.nodes); setEdges(flow.edges); setSelected(null);
   }
   function add(type: ScenarioNode["type"]) {
+    checkpoint();
     const viewport = document.querySelector(".canvas .react-flow")?.getBoundingClientRect();
     const center = viewport
       ? flow.screenToFlowPosition({ x: viewport.left + viewport.width / 2, y: viewport.top + viewport.height / 2 })
@@ -89,11 +163,13 @@ function Editor() {
     setSelected(n.id);
   }
   function editNode(update: ScenarioNode) {
+    checkpoint();
     setScenario(s => ({ ...s, nodes: s.nodes.map(n => n.id === update.id ? update : n) }));
     setNodes(ns => ns.map(n => n.id === update.id ? { ...n, data: { label: update.label, kind: update.type, detail: nodeDetail(update) } } : n));
   }
   function removeSelected() {
     if (!selectedNode) return;
+    checkpoint();
     setScenario(s => ({ ...s, nodes: s.nodes.filter(n => n.id !== selected) }));
     setNodes(ns => ns.filter(n => n.id !== selected));
     setEdges(es => es.filter(e => e.source !== selected && e.target !== selected));
@@ -104,7 +180,7 @@ function Editor() {
       const p = await open({ filters: [{ name: "Scenario", extensions: ["pflow"] }] });
       if (!p || Array.isArray(p)) return;
       const s = scenarioSchema.parse(JSON.parse(await readTextFile(p)));
-      replace(s); setPath(p); setMessage("読み込み完了: " + p);
+      replace(s); setUndoStack([]); setRedoStack([]); setPath(p); setMessage("読み込み完了: " + p);
     } catch (e) { setMessage("読み込み失敗: " + String(e)); }
   }
   async function persist() {
@@ -181,6 +257,7 @@ function Editor() {
     catch (e) { setMessage("停止失敗: " + String(e)); setStopping(false); }
   }
   function updateSettings(patch: Partial<Scenario["settings"]>) {
+    checkpoint();
     setScenario(s => ({ ...s, settings: { ...s.settings, ...patch } }));
   }
   const [logHeight, setLogHeight] = useState(154);
@@ -195,7 +272,8 @@ function Editor() {
   }, [logHeight]);
   return <div className="app" data-theme={theme}>
     <header><strong className="brand"><span className="brand-mark">W</span><span>Web Test Scenario Creator<small>SCENARIO STUDIO</small></span></strong>
-      <button disabled={busy} onClick={() => { replace(fresh()); setPath(null); setMessage("新規作成"); }}>新規</button>
+      <button disabled={busy} onClick={() => { replace(fresh()); setUndoStack([]); setRedoStack([]); setPath(null); setMessage("新規作成"); }}>新規</button>
+      <button disabled={busy || !undoStack.length} onClick={undo} title="Ctrl+Z">↶ 元に戻す</button><button disabled={busy || !redoStack.length} onClick={redo} title="Ctrl+Y / Ctrl+Shift+Z">↷ やり直す</button><button disabled={busy} onClick={copySelected} title="Ctrl+C">コピー</button><button disabled={busy || !clipboard.current.length} onClick={paste} title="Ctrl+V">貼り付け</button>
       <button disabled={busy} onClick={load}>開く</button><button disabled={busy} onClick={persist}>保存</button><button disabled={busy} onClick={exportTest}>TS出力</button>
       <select aria-label="ブラウザ" disabled={busy} value={scenario.settings.browser} onChange={e => updateSettings({ browser: e.target.value as "edge" | "chromium" })}>
         <option value="edge">Edge</option><option value="chromium">Chromium</option>
@@ -208,11 +286,11 @@ function Editor() {
     </header>
     <main>
       <aside className="sidebar"><div className="panel-kicker">WORKSPACE</div><h3>シナリオ</h3>
-        <input aria-label="シナリオ名" value={scenario.metadata.name} onChange={e => setScenario(s => ({ ...s, metadata: { ...s.metadata, name: e.target.value } }))}/>
+        <input aria-label="シナリオ名" value={scenario.metadata.name} onChange={e => { checkpoint(); setScenario(s => ({ ...s, metadata: { ...s.metadata, name: e.target.value } })); }}/>
         <div className="panel-kicker">BUILD</div><h3>ノード追加</h3>{actions.map(a => <button className="palette" key={a.type} disabled={busy} onClick={() => add(a.type)}>＋ {a.name}</button>)}
         <p>ノードの端からドラッグして接続してください。</p>
       </aside>
-      <section className="canvas"><div className="canvas-heading"><span className="canvas-dot"/> フローチャート <span className="canvas-count">{nodes.length} ノード · {edges.length} 接続</span></div><ReactFlow colorMode={theme} nodeTypes={nodeTypes} nodes={nodes} edges={edges} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} onNodesChange={busy ? undefined : onNodesChange} onEdgesChange={busy ? undefined : onEdgesChange} onConnect={busy ? undefined : onConnect} onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)} fitView><Background/><Controls/><MiniMap/></ReactFlow></section>
+      <section className="canvas"><div className="canvas-heading"><span className="canvas-dot"/> フローチャート <span className="canvas-count">{nodes.length} ノード · {edges.length} 接続</span></div><ReactFlow colorMode={theme} nodeTypes={nodeTypes} nodes={nodes} edges={edges} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} onNodesChange={busy ? undefined : changeNodes} onEdgesChange={busy ? undefined : changeEdges} onNodeDragStart={busy ? undefined : () => checkpoint()} onConnect={busy ? undefined : onConnect} onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)} fitView><Background/><Controls/><MiniMap/></ReactFlow></section>
       <aside className="inspector"><div className="panel-kicker">PROPERTIES</div><h3>ノード設定</h3>{selectedNode ? <>
         <label>表示名<input value={selectedNode.label} onChange={e => editNode({ ...selectedNode, label: e.target.value })}/></label>
         {selectedNode.type === "navigate" && <label>URL<input value={selectedNode.config.url} onChange={e => editNode({ ...selectedNode, config: { url: e.target.value } })}/></label>}
