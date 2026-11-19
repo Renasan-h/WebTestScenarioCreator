@@ -65,6 +65,10 @@ function Editor() {
     setDirectory(next);
     setPath(null);
     replace(fresh());
+    setUndoStack([]);
+    setRedoStack([]);
+    setNodeStatus({});
+    setLogs([]);
     try { localStorage.setItem("scenario-directory", next); } catch { /* unavailable */ }
   }
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; position: { x: number; y: number }; nodeId?: string; edgeId?: string } | null>(null);
@@ -137,9 +141,9 @@ function Editor() {
   }
   const onConnect = useCallback((c: Connection) => { checkpoint(); setEdges(es => addEdge(c, es)); }, [scenario, nodes, edges]);
   function removeObjects(nodeIds: string[], edgeIds: string[] = []) {
-    const removable = new Set(nodeIds.filter(id => !scenario.nodes.some(n => n.id === id && (n.type === "start" || n.type === "end"))));
+    const removable = new Set(nodeIds.filter(id => scenario.nodes.some(n => n.id === id && n.type !== "start" && n.type !== "end")));
     const removeEdges = new Set(edgeIds);
-    if (!removable.size && !removeEdges.size) { setMessage("開始・終了ノードは削除できません"); return; }
+    if (!removable.size && !removeEdges.size) { setMessage("削除可能なオブジェクトがありません（開始・終了ノードは保護されています）"); return; }
     checkpoint();
     setScenario(s => ({ ...s, nodes: s.nodes.filter(n => !removable.has(n.id)) }));
     setNodes(ns => ns.filter(n => !removable.has(n.id)));
@@ -222,6 +226,8 @@ function Editor() {
     replace(loaded);
     setUndoStack([]); setRedoStack([]);
     setPath(filePath);
+    setNodeStatus({});
+    setLogs([]);
     setMessage("読み込み完了: " + filePath);
   }
   async function load() {
@@ -344,9 +350,8 @@ function Editor() {
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", stop, { once: true });
   }, [logHeight]);
-  const displayNodes = nodes.map(n => ({ ...n, className: nodeStatus[n.id] ? "debug-node debug-node--" + nodeStatus[n.id] : undefined }));
   function createScenario() {
-    replace(fresh()); setPath(null); setUndoStack([]); setRedoStack([]); setScreen("editor"); setMessage("新しいシナリオ");
+    replace(fresh()); setPath(null); setUndoStack([]); setRedoStack([]); setNodeStatus({}); setLogs([]); setScreen("editor"); setMessage("新しいシナリオ");
   }
   return <div className="app" data-theme={theme}>
     <header className="studio-header">
