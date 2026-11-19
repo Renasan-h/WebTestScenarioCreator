@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ReactFlow, Background, Controls, MiniMap, addEdge, useNodesState, useEdgesState, type Connection, type Node, type Edge } from "@xyflow/react";
+import { ReactFlow, Background, Controls, MiniMap, addEdge, useNodesState, useEdgesState, type Connection, type Node, type Edge, useReactFlow, ReactFlowProvider } from "@xyflow/react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
@@ -42,7 +42,8 @@ function newNode(type: ScenarioNode["type"], position: { x: number; y: number })
     case "end": return { ...base, type, config: {} };
   }
 }
-export default function App() {
+function Editor() {
+  const flow = useReactFlow();
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     try {
       const saved = localStorage.getItem("scenario-theme");
@@ -77,7 +78,12 @@ export default function App() {
     setScenario(s); const flow = toFlow(s); setNodes(flow.nodes); setEdges(flow.edges); setSelected(null);
   }
   function add(type: ScenarioNode["type"]) {
-    const n = newNode(type, { x: 120 + nodes.length * 24, y: 100 + nodes.length * 65 });
+    const viewport = document.querySelector(".canvas .react-flow")?.getBoundingClientRect();
+    const center = viewport
+      ? flow.screenToFlowPosition({ x: viewport.left + viewport.width / 2, y: viewport.top + viewport.height / 2 })
+      : { x: 300, y: 200 };
+    const offset = (nodes.length % 4) * 24;
+    const n = newNode(type, { x: center.x - 102 + offset, y: center.y - 55 + offset });
     setScenario(s => ({ ...s, nodes: [...s.nodes, n] }));
     setNodes(ns => [...ns, { id: n.id, position: n.position, data: { label: n.label, kind: n.type, detail: nodeDetail(n) }, type: "scenario" }]);
     setSelected(n.id);
@@ -177,6 +183,16 @@ export default function App() {
   function updateSettings(patch: Partial<Scenario["settings"]>) {
     setScenario(s => ({ ...s, settings: { ...s.settings, ...patch } }));
   }
+  const [logHeight, setLogHeight] = useState(154);
+  const resizeLogs = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startY = event.clientY;
+    const startHeight = logHeight;
+    const move = (e: PointerEvent) => setLogHeight(Math.max(72, Math.min(window.innerHeight * 0.55, startHeight + startY - e.clientY)));
+    const stop = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", stop); };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop, { once: true });
+  }, [logHeight]);
   return <div className="app" data-theme={theme}>
     <header><strong className="brand"><span className="brand-mark">W</span><span>Web Test Scenario Creator<small>SCENARIO STUDIO</small></span></strong>
       <button disabled={busy} onClick={() => { replace(fresh()); setPath(null); setMessage("新規作成"); }}>新規</button>
@@ -219,7 +235,9 @@ export default function App() {
         <button disabled={busy} onClick={removeSelected}>ノード削除</button>
       </> : <p>ノードを選択してください。</p>}</aside>
     </main>
-    <div className="logs"><strong><span className="log-indicator"/> 実行ログ</strong><pre>{logs.join("\n") || "実行するとログが表示されます。"}</pre></div>
+    <div className="logs" style={{ height: logHeight }}><div className="log-resize" role="separator" aria-label="ログ表示の高さを変更" aria-orientation="horizontal" tabIndex={0} onPointerDown={resizeLogs} onKeyDown={e => { if (e.key === "ArrowUp") setLogHeight(h => Math.min(window.innerHeight * .55, h + 24)); if (e.key === "ArrowDown") setLogHeight(h => Math.max(72, h - 24)); }}><span /></div><strong><span className="log-indicator"/> 実行ログ</strong><pre>{logs.join("\n") || "実行するとログが表示されます。"}</pre></div>
     <footer>{message}</footer>
   </div>;
 }
+
+export default function App() { return <ReactFlowProvider><Editor /></ReactFlowProvider>; }
