@@ -40,14 +40,27 @@ async function main() {
         await detach();
       }
     } else {
+      const debug = process.argv.includes("--debug");
+      let resume: (() => void) | null = null;
+      let stepMode = debug;
+      const beforeNode = debug ? async () => {
+        if (!stepMode) return;
+        await new Promise<void>(resolve => { resume = resolve; });
+      } : undefined;
       if (lines) {
         void (async () => {
           for await (const line of { [Symbol.asyncIterator]: () => lines }) {
-            if (line === "STOP") { await browser.close(); break; }
+            if (line === "STOP") { resume?.(); await browser.close(); break; }
+            if (line === "STEP" || line === "CONTINUE") {
+              if (line === "CONTINUE") stepMode = false;
+              const release = resume;
+              resume = null;
+              release?.();
+            }
           }
         })();
       }
-      await executeScenario(scenario, n => runAction(page, n), e => process.stdout.write(JSON.stringify(e) + "\n"));
+      await executeScenario(scenario, n => runAction(page, n), e => process.stdout.write(JSON.stringify(e) + "\n"), undefined, beforeNode);
     }
   } finally {
     input?.close();
