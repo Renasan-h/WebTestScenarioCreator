@@ -23,6 +23,32 @@ type Props = {
   onStop: () => void;
 };
 
+type CategoryBranch = { scenarios: ScenarioEntry[]; children: Map<string, CategoryBranch> };
+function categoryTree(entries: ScenarioEntry[]): CategoryBranch {
+  const root: CategoryBranch = { scenarios: [], children: new Map() };
+  for (const entry of entries) {
+    const names = (entry.category || "未分類").split("/").filter(Boolean);
+    let current = root;
+    for (const name of names.length ? names : ["未分類"]) {
+      if (!current.children.has(name)) current.children.set(name, { scenarios: [], children: new Map() });
+      current = current.children.get(name)!;
+    }
+    current.scenarios.push(entry);
+  }
+  return root;
+}
+function countCategory(branch: CategoryBranch): number {
+  return branch.scenarios.length + [...branch.children.values()].reduce((count, child) => count + countCategory(child), 0);
+}
+function CategoryList({ branch, depth, selectedPath, onSelect }: { branch: CategoryBranch; depth: number; selectedPath: string | null; onSelect: (path: string) => void }) {
+  return <>{branch.scenarios.map(entry => <button key={entry.path} className={"scenario-list-item" + (selectedPath === entry.path ? " is-selected" : "")} onClick={() => onSelect(entry.path)} title={entry.path}><span>◇</span><span>{entry.name}</span></button>)}
+    {[...branch.children.entries()].sort(([a], [b]) => a.localeCompare(b, "ja")).map(([name, child]) => <details key={name} open={depth < 1} className="scenario-category">
+      <summary>▸ {name} <small>{countCategory(child)}</small></summary>
+      <div className="scenario-tree-nested"><CategoryList branch={child} depth={depth + 1} selectedPath={selectedPath} onSelect={onSelect}/></div>
+    </details>)}
+  </>;
+}
+
 export function ScenarioHome({ directory, onDirectoryChange, selectedPath, scenario, busy, message, logs, errors, onSelect, onNew, onOpen, onEdit, onDebug, onRun, onStop }: Props) {
   const [entries, setEntries] = useState<ScenarioEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,15 +74,7 @@ export function ScenarioHome({ directory, onDirectoryChange, selectedPath, scena
     return entries;
   }, [entries, selectedPath, scenario.metadata.name]);
 
-  const groups = useMemo(() => {
-    const grouped = new Map<string, ScenarioEntry[]>();
-    for (const entry of allEntries) {
-      if (!entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()) && !entry.category.toLocaleLowerCase().includes(query.toLocaleLowerCase())) continue;
-      const category = entry.category || "未分類";
-      grouped.set(category, [...(grouped.get(category) ?? []), entry]);
-    }
-    return [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b, "ja"));
-  }, [allEntries, query]);
+  const tree = useMemo(() => categoryTree(allEntries.filter(entry => entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()) || entry.category.toLocaleLowerCase().includes(query.toLocaleLowerCase()))), [allEntries, query]);
 
   async function pickDirectory() {
     try {
@@ -78,11 +96,8 @@ export function ScenarioHome({ directory, onDirectoryChange, selectedPath, scena
       <div className="scenario-tree">
         {loading && <p>シナリオを読み込み中…</p>}
         {error && <p className="home-error" role="alert">{error}</p>}
-        {!loading && !groups.length && <p>一覧が空です。ディレクトリを指定するか、ファイルを開いてください。</p>}
-        {groups.map(([category, items]) => <details key={category} open className="scenario-category">
-          <summary>▸ {category} <small>{items.length}</small></summary>
-          {items.map(entry => <button key={entry.path} className={"scenario-list-item" + (selectedPath === entry.path ? " is-selected" : "")} onClick={() => onSelect(entry.path)} title={entry.path}><span>◇</span><span>{entry.name}</span></button>)}
-        </details>)}
+        {!loading && countCategory(tree) === 0 && <p>一覧が空です。ディレクトリを指定するか、ファイルを開いてください。</p>}
+        <CategoryList branch={tree} depth={0} selectedPath={selectedPath} onSelect={onSelect}/>
       </div>
       <button className="home-new-button" onClick={onNew}>＋ 新しいシナリオ</button>
     </aside>
