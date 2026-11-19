@@ -241,3 +241,7 @@ main{min-height:0;overflow:hidden}
   .editor-layout aside.sidebar,.editor-layout aside.inspector{width:100%;max-height:190px}
   .editor-layout .canvas{min-height:330px}
 }
+
+/* Debug execution progress */
+.debug-progress { height: 5px; background: var(--border, #d6dce5); overflow: hidden; }
+.debug-progress-fill { height: 100%; background: #20a784; transition: width 180ms ease-out; }
