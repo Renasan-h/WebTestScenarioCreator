@@ -1,34 +1,40 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+async function openEditor(page: Page) {
+  await page.goto("/");
+  await page.getByRole("button", { name: "✎ 編集", exact: true }).click();
+}
 
 test("scenario editor shows main controls", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.getByText("Web Test Scenario Creator")).toBeVisible();
-  await expect(page.getByRole("button", { name: "新規" })).toBeVisible();
+  await openEditor(page);
+  await expect(page.getByText("Scenario Studio")).toBeVisible();
   await expect(page.getByRole("button", { name: "保存" })).toBeVisible();
   await expect(page.getByRole("button", { name: "実行", exact: false })).toBeVisible();
   await expect(page.getByLabel("ブラウザ")).toHaveValue("edge");
 });
 test("adds and edits a navigation node", async ({ page }) => {
-  await page.goto("/");
+  await openEditor(page);
   await page.getByRole("button", { name: "＋ URL移動" }).click();
   await expect(page.getByText("ノード設定")).toBeVisible();
   await page.getByLabel("URL", { exact: true }).fill("https://example.org");
   await expect(page.getByLabel("URL", { exact: true })).toHaveValue("https://example.org");
 });
 test("changes browser and creates new scenario", async ({ page }) => {
-  await page.goto("/");
+  await openEditor(page);
   await page.getByLabel("ブラウザ").selectOption("chromium");
   await expect(page.getByLabel("ブラウザ")).toHaveValue("chromium");
-  await page.getByRole("button", { name: "新規" }).click();
+  await page.getByRole("button", { name: "⌂ TOP" }).click();
+  await page.getByRole("button", { name: "＋ 新規" }).click();
   await expect(page.getByLabel("ブラウザ")).toHaveValue("edge");
 });
 
-test("stop is disabled when no scenario is running", async ({ page }) => {
-  await page.goto("/");
+test("stop is available on the debug screen but disabled while idle", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "◇ デバッグ", exact: true }).click();
   await expect(page.getByRole("button", { name: "■ 停止" })).toBeDisabled();
 });
 test("visibility assertion node can be configured", async ({ page }) => {
-  await page.goto("/");
+  await openEditor(page);
   await page.getByRole("button", { name: "＋ 表示確認" }).click();
   await expect(page.getByLabel("Locator値")).toHaveValue("body");
   await page.getByLabel("Locator値").fill("#ready");
@@ -36,46 +42,44 @@ test("visibility assertion node can be configured", async ({ page }) => {
 });
 
 test("text assertion node accepts expected text", async ({ page }) => {
-  await page.goto("/");
+  await openEditor(page);
   await page.getByRole("button", { name: "＋ 文字列確認" }).click();
   await page.getByLabel("期待する文字列").fill("Welcome");
   await expect(page.getByLabel("期待する文字列")).toHaveValue("Welcome");
 });
 
-test("record button is available and stop is initially disabled", async ({ page }) => {
-  await page.goto("/");
+test("record button is available on the editor", async ({ page }) => {
+  await openEditor(page);
   await expect(page.getByRole("button", { name: "● 記録" })).toBeEnabled();
-  await expect(page.getByRole("button", { name: "■ 停止" })).toBeDisabled();
 });
 
-test("switches between light and dark themes and persists the choice", async ({ page }) => {
-  await page.goto("/");
-  await page.getByLabel("テーマ").selectOption("dark");
+test("switches themes with an icon button and persists the choice", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "ダークモードに切り替え" }).click();
   await expect(page.locator(".app")).toHaveAttribute("data-theme", "dark");
   await expect(page.locator(".react-flow")).toHaveClass(/dark/);
   await page.reload();
-  await expect(page.getByLabel("テーマ")).toHaveValue("dark");
   await expect(page.locator(".app")).toHaveAttribute("data-theme", "dark");
-  await page.getByLabel("テーマ").selectOption("light");
+  await page.getByRole("button", { name: "ライトモードに切り替え" }).click();
   await expect(page.locator(".app")).toHaveAttribute("data-theme", "light");
   await page.reload();
-  await expect(page.getByLabel("テーマ")).toHaveValue("light");
+  await expect(page.locator(".app")).toHaveAttribute("data-theme", "light");
 });
 
 test("renders custom start/end nodes and updates action preview", async ({ page }) => {
-  await page.goto("/");
+  await openEditor(page);
   await expect(page.locator('[data-node-kind="start"]')).toBeVisible();
   await expect(page.locator('[data-node-kind="end"]')).toBeVisible();
   await page.getByRole("button", { name: "＋ URL移動" }).click();
   await expect(page.locator('[data-node-kind="navigate"]')).toContainText("https://example.com");
   await page.getByLabel("URL", { exact: true }).fill("https://example.org");
   await expect(page.locator('[data-node-kind="navigate"]')).toContainText("https://example.org");
-  await page.getByLabel("テーマ").selectOption("dark");
+  await page.getByRole("button", { name: "ダークモードに切り替え" }).click();
   await expect(page.locator('[data-node-kind="navigate"]')).toBeVisible();
 });
 
 test("configures condition node and per-node screenshot", async ({ page }) => {
-  await page.goto("/");
+  await openEditor(page);
   await page.getByRole("button", { name: "＋ 条件分岐" }).click();
   await expect(page.locator('[data-node-kind="condition"]')).toBeVisible();
   await expect(page.locator('.react-flow__handle[data-handleid="true"]')).toBeVisible();
@@ -88,7 +92,7 @@ test("configures condition node and per-node screenshot", async ({ page }) => {
 });
 
 test("new nodes appear inside the visible canvas", async ({ page }) => {
-  await page.goto("/");
+  await openEditor(page);
   await page.getByRole("button", { name: "＋ URL移動" }).click();
   const canvas = await page.locator(".canvas .react-flow").boundingBox();
   const node = await page.locator('[data-node-kind="navigate"]').boundingBox();
@@ -101,7 +105,7 @@ test("new nodes appear inside the visible canvas", async ({ page }) => {
 });
 
 test("log panel can be resized without covering workspace", async ({ page }) => {
-  await page.goto("/");
+  await openEditor(page);
   const logs = page.locator(".logs");
   const before = await logs.boundingBox();
   const handle = page.getByRole("separator", { name: "ログ表示の高さを変更" });
@@ -114,7 +118,7 @@ test("log panel can be resized without covering workspace", async ({ page }) => 
 });
 
 test("connection handles are easy to target", async ({ page }) => {
-  await page.goto("/");
+  await openEditor(page);
   const handle = page.locator('[data-node-kind="start"] .react-flow__handle');
   const box = await handle.boundingBox();
   expect(box!.width).toBeGreaterThanOrEqual(18);
@@ -122,7 +126,7 @@ test("connection handles are easy to target", async ({ page }) => {
 });
 
 test("undo and redo node additions using toolbar and keyboard", async ({ page }) => {
-  await page.goto("/");
+  await openEditor(page);
   await page.getByRole("button", { name: "＋ URL移動" }).click();
   await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(1);
   await page.getByRole("button", { name: "↶ 元に戻す" }).click();
@@ -134,7 +138,7 @@ test("undo and redo node additions using toolbar and keyboard", async ({ page })
 });
 
 test("copy and paste creates an independent node with a new id", async ({ page }) => {
-  await page.goto("/");
+  await openEditor(page);
   await page.getByRole("button", { name: "＋ URL移動" }).click();
   await page.getByRole("button", { name: "コピー", exact: true }).click();
   await page.getByRole("button", { name: "貼り付け", exact: true }).click();
@@ -148,7 +152,7 @@ test("copy and paste creates an independent node with a new id", async ({ page }
 });
 
 test("keyboard shortcuts do not override text editing", async ({ page }) => {
-  await page.goto("/");
+  await openEditor(page);
   await page.getByRole("button", { name: "＋ URL移動" }).click();
   const url = page.getByLabel("URL", { exact: true });
   await url.fill("https://example.org");
@@ -159,8 +163,50 @@ test("keyboard shortcuts do not override text editing", async ({ page }) => {
 });
 
 test("debug controls are visible and disabled until a paused run", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.getByRole("button", { name: "🐞 デバッグ開始" })).toBeEnabled();
-  await expect(page.getByRole("button", { name: "次のステップ" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "続行" })).toBeDisabled();
+  await openEditor(page);
+  await page.getByRole("button", { name: "◇ デバッグ", exact: true }).click();
+  await expect(page.getByRole("button", { name: "▶ デバッグ開始" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "⏭ 次のステップ" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "▷ 続行" })).toBeDisabled();
+});
+
+test("right-click on canvas opens the node creation menu", async ({ page }) => {
+  await openEditor(page);
+  await page.locator(".canvas .react-flow__pane").click({ button: "right", position: { x: 190, y: 165 } });
+  await expect(page.getByRole("menuitem", { name: "ノード › クリック" })).toBeVisible();
+  await page.getByRole("menuitem", { name: "ノード › クリック" }).click();
+  await expect(page.locator('[data-node-kind="click"]')).toHaveCount(1);
+});
+
+test("Delete and Backspace remove selected nodes and undo restores them", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  await page.locator('[data-node-kind="navigate"]').click();
+  await page.keyboard.press("Delete");
+  await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(0);
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(1);
+  await page.locator('[data-node-kind="navigate"]').click();
+  await page.keyboard.press("Backspace");
+  await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(0);
+});
+
+test("connection handles stay stationary on hover for all node types", async ({ page }) => {
+  await openEditor(page);
+  for (const type of ["URL移動", "クリック", "入力", "待機", "条件分岐", "表示確認", "文字列確認"]) {
+    await page.getByRole("button", { name: "＋ " + type }).click();
+  }
+  const handles = page.locator(".canvas .scenario-node .react-flow__handle");
+  const count = await handles.count();
+  expect(count).toBeGreaterThan(8);
+  for (let index = 0; index < count; index++) {
+    const handle = handles.nth(index);
+    const before = await handle.boundingBox();
+    if (!before) continue;
+    await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2);
+    const after = await handle.boundingBox();
+    expect(after).not.toBeNull();
+    expect(Math.abs(after!.x - before.x)).toBeLessThan(1);
+    expect(Math.abs(after!.y - before.y)).toBeLessThan(1);
+  }
 });
