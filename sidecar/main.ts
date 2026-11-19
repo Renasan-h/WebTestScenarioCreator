@@ -18,6 +18,10 @@ async function main() {
       const detach = await attachRecorder(page, action => process.stdout.write(JSON.stringify({ kind: "recorded-action", action }) + "\n"));
       process.on("SIGINT", () => { void browser.close(); });
       process.on("SIGTERM", () => { void browser.close(); });
+      const firstUrl = scenario.nodes.find(n => n.type === "navigate");
+      if (firstUrl?.type === "navigate") await page.goto(firstUrl.config.url);
+      else await page.goto("about:blank");
+      process.stdout.write(JSON.stringify({ kind: "recorder-ready" }) + "\n");
       if (lines) {
         void (async () => {
           for await (const line of { [Symbol.asyncIterator]: () => lines }) {
@@ -25,9 +29,6 @@ async function main() {
           }
         })();
       }
-      const firstUrl = scenario.nodes.find(n => n.type === "navigate");
-      if (firstUrl?.type === "navigate") await page.goto(firstUrl.config.url);
-      else await page.goto("about:blank");
       try {
         await new Promise<void>(resolve => {
           if (!browser.isConnected() || page.isClosed()) { resolve(); return; }
