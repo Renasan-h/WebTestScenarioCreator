@@ -30,3 +30,32 @@ describe("Playwright export", () => {
     expect(() => exportPlaywrightTest({ ...scenario, edges: [] })).toThrow();
   });
 });
+
+describe("conditional Playwright export", () => {
+  const branched: Scenario = {
+    ...scenario,
+    nodes: [
+      scenario.nodes[0],
+      { id: "condition", type: "condition", label: "Check", position: { x: 0, y: 0 }, config: { check: "visible", locator: { strategy: "css", value: "#ready" } }, screenshot: true },
+      { id: "yes", type: "wait", label: "Yes", position: { x: 0, y: 0 }, config: { durationMs: 10 } },
+      { id: "no", type: "wait", label: "No", position: { x: 0, y: 0 }, config: { durationMs: 20 } },
+      scenario.nodes[3],
+    ],
+    edges: [
+      { id: "a", source: "start", target: "condition" },
+      { id: "b", source: "condition", target: "yes", sourceHandle: "true" },
+      { id: "c", source: "condition", target: "no", sourceHandle: "false" },
+      { id: "d", source: "yes", target: "end" },
+      { id: "e", source: "no", target: "end" },
+    ],
+  };
+  it("exports both branches and screenshot capture", () => {
+    const output = exportPlaywrightTest(branched);
+    expect(output).toContain('if (await page.locator("#ready").isVisible()) {');
+    expect(output).toContain('page.waitForTimeout(10)');
+    expect(output).toContain('} else {');
+    expect(output).toContain('page.waitForTimeout(20)');
+    expect(output).toContain('page.screenshot({ path: "screenshots/condition.png", fullPage: true })');
+    expect(output).toContain('fs.mkdir("screenshots", { recursive: true })');
+  });
+});
