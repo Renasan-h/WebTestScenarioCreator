@@ -20,7 +20,7 @@ export async function executeScenario(s: Scenario, action: ExecuteAction, emit: 
   while (id) {
     const node = nodes.get(id)!;
     if (beforeNode) {
-      await beforeNode(node, () => emit({ type: "node.paused", runId, nodeId: id }));
+      await beforeNode(node, () => emit({ type: "node.paused", runId, nodeId: node.id }));
     }
     const started = Date.now();
     emit({ type: "node.started", runId, nodeId: id });
