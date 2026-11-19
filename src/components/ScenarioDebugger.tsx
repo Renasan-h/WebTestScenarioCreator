@@ -30,7 +30,10 @@ export function ScenarioDebugger({ scenario, nodes, edges, nodeStatus, pausedNod
     passed: Object.values(nodeStatus).filter(s => s === "passed").length,
     failed: Object.values(nodeStatus).filter(s => s === "failed").length,
   }), [nodeStatus]);
-  const currentNode = scenario.nodes.find(node => node.id === pausedNode);
+  const activeNodeId = pausedNode ?? scenario.nodes.find(node => nodeStatus[node.id] === "running")?.id;
+  const currentNode = scenario.nodes.find(node => node.id === activeNodeId);
+  const completedCount = counts.passed + counts.failed;
+  const progressPercent = scenario.nodes.length ? Math.round(completedCount / scenario.nodes.length * 100) : 0;
   const displayNodes = nodes.map(node => ({ ...node, className: nodeStatus[node.id] ? "debug-node debug-node--" + nodeStatus[node.id] : "" }));
   const labels: Record<Status, string> = { paused: "待機中", running: "実行中", passed: "成功", failed: "失敗" };
 
@@ -47,10 +50,13 @@ export function ScenarioDebugger({ scenario, nodes, edges, nodeStatus, pausedNod
       </div>
     </div>
     <div className="debug-summary">
-      <div><span>実行状態</span><strong>{currentNode ? "一時停止中" : busy ? "実行中" : "待機"}</strong></div>
+      <div><span>実行状態</span><strong>{pausedNode ? "一時停止中" : busy ? stopping ? "停止中" : "実行中" : completedCount ? counts.failed ? "失敗あり" : "完了" : "待機"}</strong></div>
       <div><span>成功ノード</span><strong>{counts.passed} / {scenario.nodes.length}</strong></div>
       <div><span>失敗ノード</span><strong>{counts.failed}</strong></div>
-      <div><span>次のノード</span><strong>{currentNode?.label ?? "—"}</strong></div>
+      <div><span>{pausedNode ? "次のノード" : busy ? "実行中のノード" : "最終実行ノード"}</span><strong>{currentNode?.label ?? "—"}</strong></div>
+    </div>
+    <div className="debug-progress" role="progressbar" aria-label="デバッグ進捗" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent}>
+      <div className="debug-progress-fill" style={{ width: progressPercent + "%" }}/>
     </div>
     <div className="debug-workspace">
       <aside className="debug-timeline"><div className="panel-kicker">EXECUTION STEPS</div><h3>ステップ一覧</h3>
