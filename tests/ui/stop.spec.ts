@@ -8,7 +8,8 @@ import type { Scenario } from "../../packages/schema/src/scenario";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
-test("STOP closes the recording browser and exits cleanly", async () => {
+for (const mode of ["ready", "early", "duplicate"] as const) {
+test(`STOP closes the recording browser (${mode})`, async () => {
   const scenario: Scenario = {
     schemaVersion: "1.0",
     metadata: { id: "stop-test", name: "Stop test", createdAt: "", updatedAt: "" },
@@ -30,6 +31,7 @@ test("STOP closes the recording browser and exits cleanly", async () => {
   const exit = once(child, "exit");
   try {
     child.stdin.write(JSON.stringify(scenario) + "\n");
+    if (mode === "early") child.stdin.write("STOP\n");
     // Wait for the recorder to finish browser initialization before stopping it.
     const output = createInterface({ input: child.stdout });
     await Promise.race([
@@ -41,7 +43,8 @@ test("STOP closes the recording browser and exits cleanly", async () => {
       })(),
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Recorder not ready: " + stderr)), 15000)),
     ]);
-    child.stdin.write("STOP\n");
+    if (mode !== "early") child.stdin.write("STOP\n");
+    if (mode === "duplicate") child.stdin.write("STOP\n");
     const [code, signal] = await Promise.race([
       exit,
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Runner did not exit after STOP: " + stderr)), 15000)),
@@ -52,3 +55,4 @@ test("STOP closes the recording browser and exits cleanly", async () => {
     if (child.exitCode === null) child.kill();
   }
 });
+}
