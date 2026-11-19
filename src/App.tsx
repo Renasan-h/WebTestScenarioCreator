@@ -143,7 +143,26 @@ function Editor() {
     setSelected(copies.length === 1 ? copies[0].id : null);
     setMessage(copies.length + "個のノードを貼り付けました");
   }
-  const onConnect = useCallback((c: Connection) => { checkpoint(); setEdges(es => addEdge(c, es)); }, [scenario, nodes, edges]);
+  const onConnect = useCallback((connection: Connection) => {
+    const source = scenario.nodes.find(node => node.id === connection.source);
+    const target = scenario.nodes.find(node => node.id === connection.target);
+    if (!source || !target || source.id === target.id || source.type === "end" || target.type === "start") {
+      setMessage("接続できません：開始・終了ノードの方向と接続先を確認してください");
+      return;
+    }
+    const handle = connection.sourceHandle ?? null;
+    if (source.type === "condition" && handle !== "true" && handle !== "false") {
+      setMessage("条件分岐はYESまたはNOから接続してください");
+      return;
+    }
+    if (edges.some(edge => edge.source === source.id && (edge.sourceHandle ?? null) === handle)) {
+      setMessage("この出力には既に接続があります。接続線を削除してから接続してください");
+      return;
+    }
+    checkpoint();
+    setEdges(existing => addEdge(connection, existing));
+    setMessage("ノードを接続しました");
+  }, [scenario, nodes, edges]);
   function removeObjects(nodeIds: string[], edgeIds: string[] = []) {
     const removable = new Set(nodeIds.filter(id => scenario.nodes.some(n => n.id === id && n.type !== "start" && n.type !== "end")));
     const removeEdges = new Set(edgeIds);
