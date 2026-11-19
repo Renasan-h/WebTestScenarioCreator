@@ -120,3 +120,40 @@ test("connection handles are easy to target", async ({ page }) => {
   expect(box!.width).toBeGreaterThanOrEqual(18);
   expect(box!.height).toBeGreaterThanOrEqual(18);
 });
+
+test("undo and redo node additions using toolbar and keyboard", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(1);
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(0);
+  await page.keyboard.press("Control+y");
+  await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(1);
+  await page.keyboard.press("Control+z");
+  await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(0);
+});
+
+test("copy and paste creates an independent node with a new id", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  await page.getByRole("button", { name: "コピー", exact: true }).click();
+  await page.getByRole("button", { name: "貼り付け", exact: true }).click();
+  await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(2);
+  const ids = await page.locator('[data-node-kind="navigate"]').evaluateAll(nodes => nodes.map(n => n.closest(".react-flow__node")?.getAttribute("data-id")));
+  expect(new Set(ids).size).toBe(2);
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(1);
+  await page.getByRole("button", { name: "↷ やり直す" }).click();
+  await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(2);
+});
+
+test("keyboard shortcuts do not override text editing", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  const url = page.getByLabel("URL", { exact: true });
+  await url.fill("https://example.org");
+  await url.press("Control+a");
+  await url.press("Control+c");
+  await url.press("Control+v");
+  await expect(page.locator('[data-node-kind="navigate"]')).toHaveCount(1);
+});
