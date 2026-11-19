@@ -350,6 +350,7 @@ function Editor() {
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", stop, { once: true });
   }, [logHeight]);
+  const displayNodes = nodes.map(n => ({ ...n, className: nodeStatus[n.id] ? "debug-node debug-node--" + nodeStatus[n.id] : undefined }));
   function createScenario() {
     replace(fresh()); setPath(null); setUndoStack([]); setRedoStack([]); setNodeStatus({}); setLogs([]); setScreen("editor"); setMessage("新しいシナリオ");
   }
