@@ -1,24 +1,28 @@
 import { readFile } from "node:fs/promises";
+import { createInterface } from "node:readline";
 import { scenarioSchema } from "../packages/schema/src/scenario";
 import { executeScenario } from "../packages/engine/src/execute";
 import { openBrowser, runAction } from "../packages/playwright-adapter/src/browser";
 import { attachRecorder } from "../packages/playwright-adapter/src/record";
 
 async function main() {
-  const raw = process.argv.includes("--stdin")
-    ? await new Promise<string>((resolve, reject) => {
-        let data = "";
-        process.stdin.setEncoding("utf8");
-        process.stdin.on("data", chunk => data += chunk);
-        process.stdin.on("end", () => resolve(data));
-        process.stdin.on("error", reject);
-      })
+  const input = process.argv.includes("--stdin") ? createInterface({ input: process.stdin, crlfDelay: Infinity }) : null;
+  const lines = input?.[Symbol.asyncIterator]();
+  const raw = lines
+    ? (await lines.next()).value ?? ""
     : await readFile(process.argv[2] ?? "", "utf8");
   const scenario = scenarioSchema.parse(JSON.parse(raw));
   const { browser, page } = await openBrowser(scenario);
   try {
     if (process.argv.includes("--record")) {
       const detach = await attachRecorder(page, action => process.stdout.write(JSON.stringify({ kind: "recorded-action", action }) + "\n"));
+      if (lines) {
+        void (async () => {
+          for await (const line of { [Symbol.asyncIterator]: () => lines }) {
+            if (line === "STOP") { await browser.close(); break; }
+          }
+        })();
+      }
       process.on("SIGINT", () => { void browser.close(); });
       process.on("SIGTERM", () => { void browser.close(); });
       const firstUrl = scenario.nodes.find(n => n.type === "navigate");
@@ -38,7 +42,8 @@ async function main() {
       await executeScenario(scenario, n => runAction(page, n), e => process.stdout.write(JSON.stringify(e) + "\n"));
     }
   } finally {
-    await browser.close();
+    input?.close();
+    if (browser.isConnected()) await browser.close();
   }
 }
 main().catch(e => { console.error(e); process.exitCode = 1; });
