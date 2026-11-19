@@ -77,6 +77,7 @@ export function ScenarioHome({ directory, onDirectoryChange, selectedPath, scena
   const tree = useMemo(() => categoryTree(allEntries.filter(entry => entry.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()) || entry.category.toLocaleLowerCase().includes(query.toLocaleLowerCase()))), [allEntries, query]);
 
   async function pickDirectory() {
+    if (busy) return;
     try {
       const result = await open({ directory: true, multiple: false, title: "シナリオフォルダーを選択" });
       if (typeof result === "string") onDirectoryChange(result);
@@ -86,11 +87,11 @@ export function ScenarioHome({ directory, onDirectoryChange, selectedPath, scena
   return <main className="home-layout" aria-label="TOP画面">
     <aside className="home-sidebar" aria-label="シナリオ一覧">
       <div className="home-sidebar-title"><span className="panel-kicker">SCENARIOS</span><strong>シナリオ一覧</strong><span className="home-count">{allEntries.length}</span></div>
-      <button className="home-directory-button" onClick={pickDirectory}>▣ ディレクトリを選択</button>
+      <button className="home-directory-button" disabled={busy} onClick={pickDirectory}>▣ ディレクトリを選択</button>
       <div className="directory-location" title={directory || "未選択"}>{directory || "フォルダーが選択されていません"}</div>
       <div className="home-sidebar-actions">
-        <button onClick={() => setReload(value => value + 1)} disabled={!directory || loading} aria-label="シナリオ一覧を更新">↻ 更新</button>
-        <button onClick={onOpen}>↗ ファイルを開く</button>
+        <button onClick={() => setReload(value => value + 1)} disabled={!directory || loading || busy} aria-label="シナリオ一覧を更新">↻ 更新</button>
+        <button onClick={onOpen} disabled={busy}>↗ ファイルを開く</button>
       </div>
       <input aria-label="シナリオ検索" placeholder="シナリオを検索…" value={query} onChange={event => setQuery(event.target.value)}/>
       <div className="scenario-tree">
@@ -99,7 +100,7 @@ export function ScenarioHome({ directory, onDirectoryChange, selectedPath, scena
         {!loading && countCategory(tree) === 0 && <p>一覧が空です。ディレクトリを指定するか、ファイルを開いてください。</p>}
         <CategoryList branch={tree} depth={0} selectedPath={selectedPath} onSelect={onSelect}/>
       </div>
-      <button className="home-new-button" onClick={onNew}>＋ 新しいシナリオ</button>
+      <button className="home-new-button" disabled={busy} onClick={onNew}>＋ 新しいシナリオ</button>
     </aside>
     <section className="home-content">
       <div className="home-page-heading">
