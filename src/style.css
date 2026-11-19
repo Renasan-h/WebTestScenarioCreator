@@ -245,3 +245,6 @@ main{min-height:0;overflow:hidden}
 /* Debug execution progress */
 .debug-progress { height: 5px; background: var(--border, #d6dce5); overflow: hidden; }
 .debug-progress-fill { height: 100%; background: #20a784; transition: width 180ms ease-out; }
+
+/* Keep the inspector layout unchanged while disabling its inputs during runs. */
+.inspector-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
