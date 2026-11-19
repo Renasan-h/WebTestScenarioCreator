@@ -14,17 +14,17 @@ async function main() {
   const scenario = scenarioSchema.parse(JSON.parse(raw));
   const { browser, page } = await openBrowser(scenario);
   try {
-    if (lines) {
-      void (async () => {
-        for await (const line of { [Symbol.asyncIterator]: () => lines }) {
-          if (line === "STOP") { await browser.close(); break; }
-        }
-      })();
-    }
     if (process.argv.includes("--record")) {
       const detach = await attachRecorder(page, action => process.stdout.write(JSON.stringify({ kind: "recorded-action", action }) + "\n"));
       process.on("SIGINT", () => { void browser.close(); });
       process.on("SIGTERM", () => { void browser.close(); });
+      if (lines) {
+        void (async () => {
+          for await (const line of { [Symbol.asyncIterator]: () => lines }) {
+            if (line === "STOP") { await browser.close(); break; }
+          }
+        })();
+      }
       const firstUrl = scenario.nodes.find(n => n.type === "navigate");
       if (firstUrl?.type === "navigate") await page.goto(firstUrl.config.url);
       else await page.goto("about:blank");
@@ -39,6 +39,13 @@ async function main() {
         await detach();
       }
     } else {
+      if (lines) {
+        void (async () => {
+          for await (const line of { [Symbol.asyncIterator]: () => lines }) {
+            if (line === "STOP") { await browser.close(); break; }
+          }
+        })();
+      }
       await executeScenario(scenario, n => runAction(page, n), e => process.stdout.write(JSON.stringify(e) + "\n"));
     }
   } finally {
