@@ -25,6 +25,7 @@ function toFlow(s: Scenario): { nodes: Node[]; edges: Edge[] } {
 const actions: { type: ScenarioNode["type"]; name: string }[] = [
   { type: "navigate", name: "URL移動" }, { type: "click", name: "クリック" },
   { type: "fill", name: "入力" }, { type: "wait", name: "待機" },
+  { type: "condition", name: "条件分岐" },
   { type: "assertVisible", name: "表示確認" }, { type: "assertText", name: "文字列確認" },
 ];
 function newNode(type: ScenarioNode["type"], position: { x: number; y: number }): ScenarioNode {
@@ -34,6 +35,7 @@ function newNode(type: ScenarioNode["type"], position: { x: number; y: number })
     case "click": return { ...base, type, config: { locator: { strategy: "css", value: "#button" } } };
     case "fill": return { ...base, type, config: { locator: { strategy: "css", value: "#input" }, value: "" } };
     case "wait": return { ...base, type, config: { durationMs: 1000 } };
+    case "condition": return { ...base, type, config: { locator: { strategy: "css", value: "body" }, check: "visible" } };
     case "assertText": return { ...base, type, config: { locator: { strategy: "css", value: "body" }, expected: "" } };
     case "assertVisible": return { ...base, type, config: { locator: { strategy: "css", value: "body" } } };
     case "start": return { ...base, type, config: {} };
@@ -198,7 +200,7 @@ export default function App() {
       <aside className="inspector"><div className="panel-kicker">PROPERTIES</div><h3>ノード設定</h3>{selectedNode ? <>
         <label>表示名<input value={selectedNode.label} onChange={e => editNode({ ...selectedNode, label: e.target.value })}/></label>
         {selectedNode.type === "navigate" && <label>URL<input value={selectedNode.config.url} onChange={e => editNode({ ...selectedNode, config: { url: e.target.value } })}/></label>}
-        {(selectedNode.type === "click" || selectedNode.type === "fill" || selectedNode.type === "assertVisible" || selectedNode.type === "assertText") && <>
+        {(selectedNode.type === "click" || selectedNode.type === "fill" || selectedNode.type === "assertVisible" || selectedNode.type === "assertText" || selectedNode.type === "condition") && <>
           <label>Locator方式<select value={selectedNode.config.locator.strategy} onChange={e => {
             const locator = e.target.value === "role" ? { strategy: "role" as const, role: "button" } : { strategy: e.target.value as "css" | "testId" | "text", value: "" };
             editNode({ ...selectedNode, config: { ...selectedNode.config, locator } } as ScenarioNode);
@@ -209,9 +211,11 @@ export default function App() {
             editNode({ ...selectedNode, config: { ...selectedNode.config, locator } } as ScenarioNode);
           }}/></label>
         </>}
+        {selectedNode.type === "condition" && <><label>条件<select aria-label="条件" value={selectedNode.config.check} onChange={e => editNode({ ...selectedNode, config: { ...selectedNode.config, check: e.target.value as "visible" | "textContains" } })}><option value="visible">表示されている</option><option value="textContains">文字列を含む</option></select></label>{selectedNode.config.check === "textContains" && <label>比較文字列<input aria-label="比較文字列" value={selectedNode.config.expected ?? ""} onChange={e => editNode({ ...selectedNode, config: { ...selectedNode.config, expected: e.target.value } })}/></label>}<p>左の YES と右の NO から、それぞれ次のノードに接続してください。</p></>}
         {selectedNode.type === "assertText" && <label>期待する文字列<input value={selectedNode.config.expected} onChange={e => editNode({ ...selectedNode, config: { ...selectedNode.config, expected: e.target.value } })}/></label>}
         {selectedNode.type === "fill" && <label>入力値<input value={selectedNode.config.value} onChange={e => editNode({ ...selectedNode, config: { ...selectedNode.config, value: e.target.value } })}/></label>}
         {selectedNode.type === "wait" && <label>待機ミリ秒<input type="number" min={0} value={selectedNode.config.durationMs} onChange={e => editNode({ ...selectedNode, config: { durationMs: Number(e.target.value) } })}/></label>}
+        <label className="screenshot-option"><input type="checkbox" aria-label="スクリーンショットを撮影" checked={selectedNode.screenshot ?? false} onChange={e => editNode({ ...selectedNode, screenshot: e.target.checked })}/> 実行後にスクリーンショットを撮影</label>
         <button disabled={busy} onClick={removeSelected}>ノード削除</button>
       </> : <p>ノードを選択してください。</p>}</aside>
     </main>
