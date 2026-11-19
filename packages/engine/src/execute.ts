@@ -3,13 +3,14 @@ import { validateGraph } from "../../schema/src/scenario";
 
 export type ExecutionEvent =
   | { type: "run.started"; runId: string }
+  | { type: "node.paused"; runId: string; nodeId: string }
   | { type: "node.started"; runId: string; nodeId: string }
   | { type: "node.completed"; runId: string; nodeId: string; durationMs: number }
   | { type: "node.failed"; runId: string; nodeId: string; message: string }
   | { type: "run.finished"; runId: string; status: "completed" | "failed" };
 export type ExecuteAction = (node: ScenarioNode) => Promise<boolean | void>;
 
-export async function executeScenario(s: Scenario, action: ExecuteAction, emit: (e: ExecutionEvent) => void, runId = crypto.randomUUID()): Promise<void> {
+export async function executeScenario(s: Scenario, action: ExecuteAction, emit: (e: ExecutionEvent) => void, runId = crypto.randomUUID(), beforeNode?: (node: ScenarioNode) => Promise<void>): Promise<void> {
   const problems = validateGraph(s);
   if (problems.length) throw new Error(problems.join("; "));
   const nodes = new Map(s.nodes.map(n => [n.id, n]));
@@ -18,6 +19,10 @@ export async function executeScenario(s: Scenario, action: ExecuteAction, emit: 
   emit({ type: "run.started", runId });
   while (id) {
     const node = nodes.get(id)!;
+    if (beforeNode) {
+      emit({ type: "node.paused", runId, nodeId: id });
+      await beforeNode(node);
+    }
     const started = Date.now();
     emit({ type: "node.started", runId, nodeId: id });
     try {
