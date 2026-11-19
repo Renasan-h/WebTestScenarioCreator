@@ -41,21 +41,21 @@ async function main() {
       }
     } else {
       const debug = process.argv.includes("--debug");
-      let resume: (() => void) | null = null;
+      const gate: { resume?: () => void } = {};
       let stepMode = debug;
       const beforeNode = debug ? async (_node: unknown, notifyPaused: () => void) => {
         if (!stepMode) return;
         notifyPaused();
-        await new Promise<void>(resolve => { resume = resolve; });
+        await new Promise<void>(resolve => { gate.resume = resolve; });
       } : undefined;
       if (lines) {
         void (async () => {
           for await (const line of { [Symbol.asyncIterator]: () => lines }) {
-            if (line === "STOP") { resume?.(); await browser.close(); break; }
+            if (line === "STOP") { gate.resume?.(); gate.resume = undefined; await browser.close(); break; }
             if (line === "STEP" || line === "CONTINUE") {
               if (line === "CONTINUE") stepMode = false;
-              const release = resume;
-              resume = null;
+              const release = gate.resume;
+              gate.resume = undefined;
               release?.();
             }
           }
