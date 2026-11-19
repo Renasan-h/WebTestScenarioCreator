@@ -13,7 +13,7 @@ struct ScenarioEntry {
 }
 
 fn is_scenario_file(path: &std::path::Path) -> bool {
-    path.extension().is_some_and(|extension| extension.eq_ignore_ascii_case("pflow"))
+    path.extension().and_then(|extension| extension.to_str()).is_some_and(|extension| extension.eq_ignore_ascii_case("pflow"))
 }
 
 fn collect_scenario_files(
