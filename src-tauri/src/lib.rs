@@ -12,8 +12,14 @@ struct RunnerState {
 async fn stop_scenario(state: State<'_, RunnerState>) -> Result<(), String> {
     let running = state.child.lock().map_err(|e| e.to_string())?.clone();
     let child = running.ok_or("実行中のシナリオがありません")?;
-    let result = child.lock().map_err(|e| e.to_string())?.kill().map_err(|e| e.to_string());
-    result
+    let mut process = child.lock().map_err(|e| e.to_string())?;
+    if let Some(input) = process.stdin.as_mut() {
+        input.write_all(b"STOP\n").map_err(|e| e.to_string())?;
+        input.flush().map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        process.kill().map_err(|e| e.to_string())
+    }
 }
 
 #[tauri::command]
@@ -46,16 +52,15 @@ async fn run_scenario(
         let app = app.clone();
         let child = child_slot.clone();
         move || -> Result<(), String> {
-            let (stdout, stderr, stdin) = {
+            let (stdout, stderr) = {
                 let mut process = child.lock().map_err(|e| e.to_string())?;
+                let input = process.stdin.as_mut().ok_or("Missing stdin")?;
+                input.write_all(scenario_json.as_bytes()).map_err(|e| e.to_string())?;
+                input.write_all(b"\n").map_err(|e| e.to_string())?;
+                input.flush().map_err(|e| e.to_string())?;
                 (process.stdout.take().ok_or("Missing stdout")?,
-                 process.stderr.take().ok_or("Missing stderr")?,
-                 process.stdin.take().ok_or("Missing stdin")?)
+                 process.stderr.take().ok_or("Missing stderr")?)
             };
-            let writer = std::thread::spawn(move || -> Result<(), String> {
-                let mut input = stdin;
-                input.write_all(scenario_json.as_bytes()).map_err(|e| e.to_string())
-            });
             let app_clone = app.clone();
             let output = std::thread::spawn(move || {
                 for line in BufReader::new(stdout).lines().map_while(Result::ok) {
@@ -65,7 +70,6 @@ async fn run_scenario(
             let errors = std::thread::spawn(move || {
                 BufReader::new(stderr).lines().map_while(Result::ok).collect::<Vec<_>>().join("\n")
             });
-            let write_result = writer.join().map_err(|_| "stdin thread panicked".to_string())?;
             let status = loop {
                 let polled = child.lock().map_err(|e| e.to_string())?.try_wait().map_err(|e| e.to_string())?;
                 if let Some(status) = polled { break status; }
@@ -73,7 +77,6 @@ async fn run_scenario(
             };
             let _ = output.join();
             let error_text = errors.join().unwrap_or_default();
-            write_result?;
             if status.success() { Ok(()) }
             else { Err(if error_text.is_empty() { format!("Runner exited: {status}") } else { error_text }) }
         }
