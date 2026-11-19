@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ReactFlow, Background, Controls, MiniMap, addEdge, useNodesState, useEdgesState, type Connection, type Node, type Edge, type NodeChange, type EdgeChange, useReactFlow, ReactFlowProvider } from "@xyflow/react";
+import { ReactFlow, Background, Controls, MiniMap, addEdge, useNodesState, useEdgesState, type Connection, type Node, type Edge, type NodeChange, type EdgeChange, SelectionMode, useReactFlow, ReactFlowProvider } from "@xyflow/react";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
 import { exportPlaywrightTest } from "../packages/engine/src/export";
 import type { RecordedAction } from "../packages/playwright-adapter/src/record";
@@ -9,6 +9,8 @@ import { appendRecordedAction } from "../packages/playwright-adapter/src/record-
 import { listen } from "@tauri-apps/api/event";
 import { scenarioSchema, validateGraph, type Scenario, type ScenarioNode } from "../packages/schema/src/scenario";
 import { ScenarioFlowNode, nodeDetail } from "./components/ScenarioFlowNode";
+import { ScenarioHome } from "./components/ScenarioHome";
+import { ScenarioDebugger } from "./components/ScenarioDebugger";
 
 const nodeTypes = { scenario: ScenarioFlowNode };
 
@@ -55,6 +57,15 @@ function Editor() {
     setTheme(value);
     try { localStorage.setItem("scenario-theme", value); } catch { /* storage unavailable */ }
   }
+  const [screen, setScreen] = useState<"home" | "editor" | "debug">("home");
+  const [directory, setDirectory] = useState(() => {
+    try { return localStorage.getItem("scenario-directory") ?? ""; } catch { return ""; }
+  });
+  function changeDirectory(next: string) {
+    setDirectory(next);
+    try { localStorage.setItem("scenario-directory", next); } catch { /* unavailable */ }
+  }
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; position: { x: number; y: number }; nodeId?: string; edgeId?: string } | null>(null);
   const [scenario, setScenario] = useState<Scenario>(fresh);
   const initial = useMemo(() => toFlow(scenario), []); // initial state only
   const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
@@ -123,6 +134,31 @@ function Editor() {
     setMessage(copies.length + "個のノードを貼り付けました");
   }
   const onConnect = useCallback((c: Connection) => { checkpoint(); setEdges(es => addEdge(c, es)); }, [scenario, nodes, edges]);
+  function removeObjects(nodeIds: string[], edgeIds: string[] = []) {
+    const removable = new Set(nodeIds.filter(id => !scenario.nodes.some(n => n.id === id && (n.type === "start" || n.type === "end"))));
+    const removeEdges = new Set(edgeIds);
+    if (!removable.size && !removeEdges.size) { setMessage("開始・終了ノードは削除できません"); return; }
+    checkpoint();
+    setScenario(s => ({ ...s, nodes: s.nodes.filter(n => !removable.has(n.id)) }));
+    setNodes(ns => ns.filter(n => !removable.has(n.id)));
+    setEdges(es => es.filter(e => !removable.has(e.source) && !removable.has(e.target) && !removeEdges.has(e.id)));
+    if (selected && removable.has(selected)) setSelected(null);
+    setMessage("選択したオブジェクトを削除しました");
+  }
+  function deleteSelection() {
+    const nodeIds = nodes.filter(n => n.selected).map(n => n.id);
+    if (selected && !nodeIds.includes(selected)) nodeIds.push(selected);
+    removeObjects(nodeIds, edges.filter(e => e.selected).map(e => e.id));
+  }
+  function openContextMenu(event: { preventDefault(): void; clientX: number; clientY: number }, nodeId?: string, edgeId?: string) {
+    event.preventDefault();
+    setContextMenu({
+      x: Math.max(8, Math.min(event.clientX, window.innerWidth - 232)),
+      y: Math.max(8, Math.min(event.clientY, window.innerHeight - 405)),
+      position: flow.screenToFlowPosition({ x: event.clientX, y: event.clientY }),
+      nodeId, edgeId,
+    });
+  }
   function changeNodes(changes: NodeChange<Node>[]) {
     onNodesChange(changes);
   }
@@ -132,9 +168,13 @@ function Editor() {
   }
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
       const target = e.target as HTMLElement | null;
       if (target?.closest("input,textarea,select,[contenteditable=true]")) return;
+      if (e.key === "Escape") { setContextMenu(null); return; }
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "Delete" || e.key === "Backspace") && screen === "editor" && !busy) {
+        e.preventDefault(); deleteSelection(); return;
+      }
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || screen !== "editor") return;
       const key = e.key.toLowerCase();
       if (key === "z") { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
       else if (key === "y") { e.preventDefault(); redo(); }
@@ -153,14 +193,14 @@ function Editor() {
   function replace(s: Scenario) {
     setScenario(s); const flow = toFlow(s); setNodes(flow.nodes); setEdges(flow.edges); setSelected(null);
   }
-  function add(type: ScenarioNode["type"]) {
+  function add(type: ScenarioNode["type"], at?: { x: number; y: number }) {
     checkpoint();
     const viewport = document.querySelector(".canvas .react-flow")?.getBoundingClientRect();
     const center = viewport
       ? flow.screenToFlowPosition({ x: viewport.left + viewport.width / 2, y: viewport.top + viewport.height / 2 })
       : { x: 300, y: 200 };
     const offset = (nodes.length % 4) * 24;
-    const n = newNode(type, { x: center.x - 102 + offset, y: center.y - 55 + offset });
+    const n = newNode(type, at ? { x: at.x - 86, y: at.y - 35 } : { x: center.x - 86 + offset, y: center.y - 40 + offset });
     setScenario(s => ({ ...s, nodes: [...s.nodes, n] }));
     setNodes(ns => [...ns, { id: n.id, position: n.position, data: { label: n.label, kind: n.type, detail: nodeDetail(n) }, type: "scenario" }]);
     setSelected(n.id);
@@ -171,19 +211,21 @@ function Editor() {
     setNodes(ns => ns.map(n => n.id === update.id ? { ...n, data: { label: update.label, kind: update.type, detail: nodeDetail(update) } } : n));
   }
   function removeSelected() {
-    if (!selectedNode) return;
-    checkpoint();
-    setScenario(s => ({ ...s, nodes: s.nodes.filter(n => n.id !== selected) }));
-    setNodes(ns => ns.filter(n => n.id !== selected));
-    setEdges(es => es.filter(e => e.source !== selected && e.target !== selected));
-    setSelected(null);
+    if (selectedNode) removeObjects([selectedNode.id]);
+  }
+  async function openScenarioAt(filePath: string) {
+    const contents = await invoke<string>("read_scenario_file", { path: filePath });
+    const loaded = scenarioSchema.parse(JSON.parse(contents));
+    replace(loaded);
+    setUndoStack([]); setRedoStack([]);
+    setPath(filePath);
+    setMessage("読み込み完了: " + filePath);
   }
   async function load() {
     try {
       const p = await open({ filters: [{ name: "Scenario", extensions: ["pflow"] }] });
       if (!p || Array.isArray(p)) return;
-      const s = scenarioSchema.parse(JSON.parse(await readTextFile(p)));
-      replace(s); setUndoStack([]); setRedoStack([]); setPath(p); setMessage("読み込み完了: " + p);
+      await openScenarioAt(p);
     } catch (e) { setMessage("読み込み失敗: " + String(e)); }
   }
   async function persist() {
@@ -192,7 +234,7 @@ function Editor() {
       if (errors.length) { setMessage(errors.join(" / ")); return; }
       const p = path ?? await save({ defaultPath: s.metadata.name + ".pflow", filters: [{ name: "Scenario", extensions: ["pflow"] }] });
       if (!p) return;
-      await writeTextFile(p, JSON.stringify(s, null, 2));
+      await invoke("write_scenario_file", { path: p, content: JSON.stringify(s, null, 2) });
       setPath(p); setScenario(s); setMessage("保存しました: " + p);
     } catch (e) { setMessage("保存失敗: " + String(e)); }
   }
@@ -300,30 +342,54 @@ function Editor() {
     window.addEventListener("pointerup", stop, { once: true });
   }, [logHeight]);
   const displayNodes = nodes.map(n => ({ ...n, className: nodeStatus[n.id] ? "debug-node debug-node--" + nodeStatus[n.id] : undefined }));
+  function createScenario() {
+    replace(fresh()); setPath(null); setUndoStack([]); setRedoStack([]); setScreen("editor"); setMessage("新しいシナリオ");
+  }
   return <div className="app" data-theme={theme}>
-    <header><strong className="brand"><span className="brand-mark">W</span><span>Web Test Scenario Creator<small>SCENARIO STUDIO</small></span></strong>
-      <button disabled={busy} onClick={() => { replace(fresh()); setUndoStack([]); setRedoStack([]); setPath(null); setMessage("新規作成"); }}>新規</button>
-      <button disabled={busy || !undoStack.length} onClick={undo} title="Ctrl+Z">↶ 元に戻す</button><button disabled={busy || !redoStack.length} onClick={redo} title="Ctrl+Y / Ctrl+Shift+Z">↷ やり直す</button><button disabled={busy} onClick={copySelected} title="Ctrl+C">コピー</button><button disabled={busy || !clipboard.current.length} onClick={paste} title="Ctrl+V">貼り付け</button>
-      <button disabled={busy} onClick={load}>開く</button><button disabled={busy} onClick={persist}>保存</button><button disabled={busy} onClick={exportTest}>TS出力</button>
-      <select aria-label="ブラウザ" disabled={busy} value={scenario.settings.browser} onChange={e => updateSettings({ browser: e.target.value as "edge" | "chromium" })}>
-        <option value="edge">Edge</option><option value="chromium">Chromium</option>
-      </select>
-      <label><input type="checkbox" disabled={busy} checked={scenario.settings.headless} onChange={e => updateSettings({ headless: e.target.checked })}/> ヘッドレス</label>
-      <label className="theme-switch">テーマ<select aria-label="テーマ" value={theme} onChange={e => changeTheme(e.target.value as "light" | "dark")}><option value="light">☀ ライト</option><option value="dark">☾ ダーク</option></select></label>
-      <button className="run-button" disabled={busy} onClick={() => run(false)}>{busy && !recording ? "実行中…" : "▶ 実行"}</button>
-      <button disabled={busy} onClick={() => run(true)}>🐞 デバッグ開始</button>
-      <button disabled={!debugging || !pausedNode} onClick={() => debugCommand("STEP")}>次のステップ</button>
-      <button disabled={!debugging || !pausedNode} onClick={() => debugCommand("CONTINUE")}>続行</button>
-      <button className="record-button" disabled={busy} onClick={startRecording}>{recording ? "記録中…" : "● 記録"}</button>
-      <button className="stop-button" disabled={!busy || stopping} onClick={stop}>{stopping ? "停止中…" : "■ 停止"}</button>
+    <header className="studio-header">
+      <strong className="studio-brand">◇ Scenario Studio</strong>
+      <nav className="studio-tabs" aria-label="画面切り替え">
+        <button className={screen === "home" ? "active" : ""} aria-current={screen === "home" ? "page" : undefined} disabled={busy} onClick={() => setScreen("home")}>⌂ TOP</button>
+        <button className={screen === "editor" ? "active" : ""} aria-current={screen === "editor" ? "page" : undefined} disabled={busy} onClick={() => setScreen("editor")}>✎ 編集</button>
+        <button className={screen === "debug" ? "active" : ""} aria-current={screen === "debug" ? "page" : undefined} disabled={busy} onClick={() => setScreen("debug")}>◇ デバッグ</button>
+      </nav>
+      <div className="studio-header-actions">
+        {screen === "home" && <>
+          <button disabled={busy} onClick={createScenario}>＋ 新規</button>
+          <button disabled={busy} onClick={load}>↗ 開く</button>
+        </>}
+        {screen === "editor" && <>
+          <button disabled={busy || !undoStack.length} onClick={undo} title="Ctrl+Z">↶ 元に戻す</button>
+          <button disabled={busy || !redoStack.length} onClick={redo} title="Ctrl+Y / Ctrl+Shift+Z">↷ やり直す</button>
+          <button disabled={busy} onClick={copySelected} title="Ctrl+C">コピー</button>
+          <button disabled={busy || !clipboard.current.length} onClick={paste} title="Ctrl+V">貼り付け</button>
+          <button disabled={busy} onClick={persist}>保存</button>
+          <button disabled={busy} onClick={exportTest}>TS出力</button>
+          <button className="record-button" disabled={busy} onClick={startRecording}>{recording ? "記録中…" : "● 記録"}</button>
+          <button className="run-button" disabled={busy} onClick={() => run(false)}>▶ 実行</button>
+          <button disabled={busy} onClick={() => setScreen("debug")}>🐞 デバッグ</button>
+          {busy && <button className="stop-button" disabled={stopping} onClick={stop}>■ 停止</button>}
+        </>}
+        {screen !== "debug" && <div className="runtime-settings">
+          <select aria-label="ブラウザ" disabled={busy} value={scenario.settings.browser} onChange={e => updateSettings({ browser: e.target.value as "edge" | "chromium" })}>
+            <option value="edge">Edge</option><option value="chromium">Chromium</option>
+          </select>
+          <label className="headless-switch" title="ブラウザの画面を表示せずに実行">
+            <input type="checkbox" disabled={busy} checked={scenario.settings.headless} onChange={e => updateSettings({ headless: e.target.checked })}/>
+            <span className="switch-track" aria-hidden="true"/><span>ヘッドレス</span>
+          </label>
+        </div>}
+        <button className="theme-icon-button" aria-label={theme === "dark" ? "ライトモードに切り替え" : "ダークモードに切り替え"} title={theme === "dark" ? "ライトモード" : "ダークモード"} onClick={() => changeTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? "☀" : "☾"}</button>
+      </div>
     </header>
-    <main>
+    {screen === "home" ? <ScenarioHome directory={directory} onDirectoryChange={changeDirectory} selectedPath={path} scenario={scenario} busy={busy} message={message} logs={logs} errors={validateGraph(snapshot())} onSelect={filePath => { if (!busy) void openScenarioAt(filePath).catch(e => setMessage("読み込み失敗: " + String(e))); }} onNew={createScenario} onOpen={() => { void load(); }} onEdit={() => setScreen("editor")} onDebug={() => setScreen("debug")} onRun={() => { void run(false); }} onStop={() => { void stop(); }}/> : screen === "debug" ? <ScenarioDebugger scenario={snapshot()} nodes={nodes} edges={edges} nodeStatus={nodeStatus} pausedNode={pausedNode} busy={busy} debugging={debugging} stopping={stopping} logs={logs} message={message} theme={theme} onStart={() => { void run(true); }} onStep={() => { void debugCommand("STEP"); }} onContinue={() => { void debugCommand("CONTINUE"); }} onStop={() => { void stop(); }} onEdit={() => setScreen("editor")} onHome={() => setScreen("home")}/> : <>
+    <main className="editor-layout">
       <aside className="sidebar"><div className="panel-kicker">WORKSPACE</div><h3>シナリオ</h3>
         <input aria-label="シナリオ名" value={scenario.metadata.name} onChange={e => { checkpoint(); setScenario(s => ({ ...s, metadata: { ...s.metadata, name: e.target.value } })); }}/>
         <div className="panel-kicker">BUILD</div><h3>ノード追加</h3>{actions.map(a => <button className="palette" key={a.type} disabled={busy} onClick={() => add(a.type)}>＋ {a.name}</button>)}
-        <p>ノードの端からドラッグして接続してください。</p>
+        <p>左ドラッグで範囲選択、選択ノードをまとめて移動。右クリックでノードの追加や削除ができます。</p>
       </aside>
-      <section className="canvas"><div className="canvas-heading"><span className="canvas-dot"/> フローチャート <span className="canvas-count">{nodes.length} ノード · {edges.length} 接続</span></div><ReactFlow colorMode={theme} nodeTypes={nodeTypes} nodes={displayNodes} edges={edges} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} onNodesChange={busy ? undefined : changeNodes} onEdgesChange={busy ? undefined : changeEdges} onNodeDragStart={busy ? undefined : () => checkpoint()} onConnect={busy ? undefined : onConnect} onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)} fitView><Background/><Controls/><MiniMap/></ReactFlow></section>
+      <section className="canvas"><div className="canvas-heading"><span className="canvas-dot"/> フローチャート <span className="canvas-count">{nodes.length} ノード · {edges.length} 接続</span></div><ReactFlow colorMode={theme} nodeTypes={nodeTypes} nodes={displayNodes} edges={edges} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} onNodesChange={busy ? undefined : changeNodes} onEdgesChange={busy ? undefined : changeEdges} onNodeDragStart={busy ? undefined : () => checkpoint()} onConnect={busy ? undefined : onConnect} onPaneClick={() => { setSelected(null); setContextMenu(null); }} onPaneContextMenu={event => openContextMenu(event)} onNodeContextMenu={(event, node) => { setSelected(node.id); openContextMenu(event, node.id); }} onEdgeContextMenu={(event, edge) => openContextMenu(event, undefined, edge.id)} onNodeClick={(_, n) => { setSelected(n.id); setContextMenu(null); }} onEdgeClick={() => { setSelected(null); setContextMenu(null); }} selectionOnDrag selectionMode={SelectionMode.Partial} panOnDrag={[1]} deleteKeyCode={null} fitView fitViewOptions={{ maxZoom: 0.82, padding: 0.2 }} minZoom={0.25}><Background/><Controls/><MiniMap/></ReactFlow></section>
       <aside className="inspector"><div className="panel-kicker">PROPERTIES</div><h3>ノード設定</h3>{selectedNode ? <>
         <label>表示名<input value={selectedNode.label} onChange={e => editNode({ ...selectedNode, label: e.target.value })}/></label>
         {selectedNode.type === "navigate" && <label>URL<input value={selectedNode.config.url} onChange={e => editNode({ ...selectedNode, config: { url: e.target.value } })}/></label>}
@@ -346,7 +412,13 @@ function Editor() {
         <button disabled={busy} onClick={removeSelected}>ノード削除</button>
       </> : <p>ノードを選択してください。</p>}</aside>
     </main>
+    {contextMenu && <div className="flow-context-menu" role="menu" style={{ left: contextMenu.x, top: contextMenu.y }} onMouseDown={event => event.stopPropagation()}>
+      <div className="context-menu-heading">ノードを追加</div>
+      {actions.map(action => <button role="menuitem" key={action.type} onClick={() => { add(action.type, contextMenu.position); setContextMenu(null); }}>ノード › {action.name}</button>)}
+      {(contextMenu.nodeId || contextMenu.edgeId) && <><div className="context-menu-divider"/><button role="menuitem" onClick={() => { removeObjects(contextMenu.nodeId ? [contextMenu.nodeId] : [], contextMenu.edgeId ? [contextMenu.edgeId] : []); setContextMenu(null); }}>削除</button></>}
+    </div>}
     <div className="logs" style={{ height: logHeight }}><div className="log-resize" role="separator" aria-label="ログ表示の高さを変更" aria-orientation="horizontal" tabIndex={0} onPointerDown={resizeLogs} onKeyDown={e => { if (e.key === "ArrowUp") setLogHeight(h => Math.min(window.innerHeight * .55, h + 24)); if (e.key === "ArrowDown") setLogHeight(h => Math.max(72, h - 24)); }}><span /></div><strong><span className="log-indicator"/> 実行ログ</strong><pre>{logs.join("\n") || "実行するとログが表示されます。"}</pre></div>
+    </>}
     <footer>{message}</footer>
   </div>;
 }
