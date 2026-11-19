@@ -1,3 +1,5 @@
+import { mkdir } from "node:fs/promises";
+import { resolve } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 import type { Scenario, ScenarioNode, LocatorSpec } from "../../schema/src/scenario";
 
@@ -18,18 +20,33 @@ export async function openBrowser(s: Scenario): Promise<{ browser: Browser; page
   page.setDefaultTimeout(s.settings.timeoutMs);
   return { browser, page };
 }
-export async function runAction(page: Page, node: ScenarioNode): Promise<void> {
+export async function runAction(page: Page, node: ScenarioNode): Promise<boolean | void> {
+  let conditionResult: boolean | undefined;
   switch (node.type) {
-    case "start": case "end": return;
-    case "navigate": await page.goto(node.config.url); return;
-    case "click": await locator(page, node.config.locator).click({ timeout: node.config.timeoutMs }); return;
+    case "start": case "end": break;
+    case "navigate": await page.goto(node.config.url); break;
+    case "click": await locator(page, node.config.locator).click({ timeout: node.config.timeoutMs }); break;
     case "fill": await locator(page, node.config.locator).fill(node.config.value, { timeout: node.config.timeoutMs }); return;
     case "assertText": {
       const actual = await locator(page, node.config.locator).innerText();
       if (!actual.includes(node.config.expected)) throw new Error(`Expected text ${JSON.stringify(node.config.expected)} in ${JSON.stringify(actual)}`);
-      return;
+      break;
     }
     case "assertVisible": await locator(page, node.config.locator).waitFor({ state: "visible" }); return;
-    case "wait": await page.waitForTimeout(node.config.durationMs); return;
+    case "wait": await page.waitForTimeout(node.config.durationMs); break;
+    case "condition": {
+      const target = locator(page, node.config.locator);
+      conditionResult = node.config.check === "visible"
+        ? await target.isVisible()
+        : (await target.textContent().catch(() => null))?.includes(node.config.expected ?? "") ?? false;
+      break;
+    }
   }
+  if (node.screenshot) {
+    const directory = resolve("screenshots");
+    await mkdir(directory, { recursive: true });
+    const safeId = node.id.replace(/[^a-zA-Z0-9_-]/g, "_");
+    await page.screenshot({ path: resolve(directory, `${Date.now()}-${safeId}.png`), fullPage: true });
+  }
+  return conditionResult;
 }
