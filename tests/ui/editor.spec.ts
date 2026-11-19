@@ -61,3 +61,15 @@ test("switches between light and dark themes and persists the choice", async ({ 
   await page.reload();
   await expect(page.getByLabel("テーマ")).toHaveValue("light");
 });
+
+test("renders custom start/end nodes and updates action preview", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator('[data-node-kind="start"]')).toBeVisible();
+  await expect(page.locator('[data-node-kind="end"]')).toBeVisible();
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  await expect(page.locator('[data-node-kind="navigate"]')).toContainText("https://example.com");
+  await page.getByLabel("URL", { exact: true }).fill("https://example.org");
+  await expect(page.locator('[data-node-kind="navigate"]')).toContainText("https://example.org");
+  await page.getByLabel("テーマ").selectOption("dark");
+  await expect(page.locator('[data-node-kind="navigate"]')).toBeVisible();
+});
