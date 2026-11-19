@@ -110,10 +110,12 @@ export default function App() {
     recordingGraph.current = next;
     replace(next);
   }
+  const stopRequested = useRef(false);
   async function startRecording() {
     if (busy) return;
     const s = snapshot();
     recordingGraph.current = s;
+    stopRequested.current = false;
     setBusy(true); setRecording(true); setLogs([]); setMessage("操作を記録中（ブラウザを閉じるか停止してください）");
     let unlisten: (() => void) | undefined;
     try {
@@ -132,27 +134,28 @@ export default function App() {
         setLogs(ls => [...ls, e.payload]);
       });
       await invoke("run_scenario", { scenarioJson: JSON.stringify({ ...s, settings: { ...s.settings, headless: false } }), record: true });
-      setMessage("記録終了。シナリオを確認して保存してください。");
-    } catch (e) { setMessage("記録終了または失敗: " + String(e)); }
+      setMessage(stopRequested.current ? "記録を停止しました。シナリオを確認して保存してください。" : "記録終了。シナリオを確認して保存してください。");
+    } catch (e) { setMessage(stopRequested.current ? "記録を停止しました: " + String(e) : "記録失敗: " + String(e)); }
     finally { unlisten?.(); recordingGraph.current = null; setBusy(false); setRecording(false); setStopping(false); }
   }
   async function run() {
     const s = snapshot();
     const errors = validateGraph(s);
     if (errors.length) { setMessage(errors.join(" / ")); return; }
+    stopRequested.current = false;
     setBusy(true); setLogs([]); setMessage("実行中");
     let unlisten: (() => void) | undefined;
     try {
       unlisten = await listen<string>("scenario-log", e => setLogs(ls => [...ls, e.payload]));
       await invoke("run_scenario", { scenarioJson: JSON.stringify(s), record: false });
-      setMessage("実行完了");
-    } catch (e) { setMessage("実行失敗または停止: " + String(e)); }
+      setMessage(stopRequested.current ? "実行を停止しました" : "実行完了");
+    } catch (e) { setMessage(stopRequested.current ? "実行を停止しました: " + String(e) : "実行失敗: " + String(e)); }
     finally { unlisten?.(); setBusy(false); setStopping(false); }
   }
   async function stop() {
     if (!busy || stopping) return;
     setStopping(true); setMessage("停止処理中");
-    try { await invoke("stop_scenario"); }
+    try { await invoke("stop_scenario"); stopRequested.current = true; }
     catch (e) { setMessage("停止失敗: " + String(e)); setStopping(false); }
   }
   function updateSettings(patch: Partial<Scenario["settings"]>) {
