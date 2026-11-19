@@ -8,6 +8,9 @@ import type { RecordedAction } from "../packages/playwright-adapter/src/record";
 import { appendRecordedAction } from "../packages/playwright-adapter/src/record-graph";
 import { listen } from "@tauri-apps/api/event";
 import { scenarioSchema, validateGraph, type Scenario, type ScenarioNode } from "../packages/schema/src/scenario";
+import { ScenarioFlowNode, nodeDetail } from "./components/ScenarioFlowNode";
+
+const nodeTypes = { scenario: ScenarioFlowNode };
 
 const stamp = () => new Date().toISOString();
 function fresh(): Scenario {
@@ -17,7 +20,7 @@ function fresh(): Scenario {
   ], edges: [] };
 }
 function toFlow(s: Scenario): { nodes: Node[]; edges: Edge[] } {
-  return { nodes: s.nodes.map(n => ({ id: n.id, position: n.position, data: { label: n.label }, type: "default" })), edges: s.edges.map(e => ({ ...e })) };
+  return { nodes: s.nodes.map(n => ({ id: n.id, position: n.position, data: { label: n.label, kind: n.type, detail: nodeDetail(n) }, type: "scenario" })), edges: s.edges.map(e => ({ ...e })) };
 }
 const actions: { type: ScenarioNode["type"]; name: string }[] = [
   { type: "navigate", name: "URL移動" }, { type: "click", name: "クリック" },
@@ -74,12 +77,12 @@ export default function App() {
   function add(type: ScenarioNode["type"]) {
     const n = newNode(type, { x: 120 + nodes.length * 24, y: 100 + nodes.length * 65 });
     setScenario(s => ({ ...s, nodes: [...s.nodes, n] }));
-    setNodes(ns => [...ns, { id: n.id, position: n.position, data: { label: n.label } }]);
+    setNodes(ns => [...ns, { id: n.id, position: n.position, data: { label: n.label, kind: n.type, detail: nodeDetail(n) }, type: "scenario" }]);
     setSelected(n.id);
   }
   function editNode(update: ScenarioNode) {
     setScenario(s => ({ ...s, nodes: s.nodes.map(n => n.id === update.id ? update : n) }));
-    setNodes(ns => ns.map(n => n.id === update.id ? { ...n, data: { label: update.label } } : n));
+    setNodes(ns => ns.map(n => n.id === update.id ? { ...n, data: { label: update.label, kind: update.type, detail: nodeDetail(update) } } : n));
   }
   function removeSelected() {
     if (!selectedNode) return;
@@ -191,7 +194,7 @@ export default function App() {
         <div className="panel-kicker">BUILD</div><h3>ノード追加</h3>{actions.map(a => <button className="palette" key={a.type} disabled={busy} onClick={() => add(a.type)}>＋ {a.name}</button>)}
         <p>ノードの端からドラッグして接続してください。</p>
       </aside>
-      <section className="canvas"><div className="canvas-heading"><span className="canvas-dot"/> フローチャート <span className="canvas-count">{nodes.length} ノード · {edges.length} 接続</span></div><ReactFlow colorMode={theme} nodes={nodes} edges={edges} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} onNodesChange={busy ? undefined : onNodesChange} onEdgesChange={busy ? undefined : onEdgesChange} onConnect={busy ? undefined : onConnect} onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)} fitView><Background/><Controls/><MiniMap/></ReactFlow></section>
+      <section className="canvas"><div className="canvas-heading"><span className="canvas-dot"/> フローチャート <span className="canvas-count">{nodes.length} ノード · {edges.length} 接続</span></div><ReactFlow colorMode={theme} nodeTypes={nodeTypes} nodes={nodes} edges={edges} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} onNodesChange={busy ? undefined : onNodesChange} onEdgesChange={busy ? undefined : onEdgesChange} onConnect={busy ? undefined : onConnect} onNodeClick={(_, n) => setSelected(n.id)} onPaneClick={() => setSelected(null)} fitView><Background/><Controls/><MiniMap/></ReactFlow></section>
       <aside className="inspector"><div className="panel-kicker">PROPERTIES</div><h3>ノード設定</h3>{selectedNode ? <>
         <label>表示名<input value={selectedNode.label} onChange={e => editNode({ ...selectedNode, label: e.target.value })}/></label>
         {selectedNode.type === "navigate" && <label>URL<input value={selectedNode.config.url} onChange={e => editNode({ ...selectedNode, config: { url: e.target.value } })}/></label>}
