@@ -186,7 +186,8 @@ function Editor() {
       }
       if (!(e.ctrlKey || e.metaKey) || e.altKey || screen !== "editor") return;
       const key = e.key.toLowerCase();
-      if (key === "z") { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
+      if (key === "s") { e.preventDefault(); if (!busy) void persist(); }
+      else if (key === "z") { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
       else if (key === "y") { e.preventDefault(); redo(); }
       else if (key === "c") { e.preventDefault(); copySelected(); }
       else if (key === "v") { e.preventDefault(); paste(); }
@@ -217,6 +218,7 @@ function Editor() {
     setSelected(n.id);
   }
   function editNode(update: ScenarioNode) {
+    if (busy) return;
     checkpoint();
     setScenario(s => ({ ...s, nodes: s.nodes.map(n => n.id === update.id ? update : n) }));
     setNodes(ns => ns.map(n => n.id === update.id ? { ...n, data: { label: update.label, kind: update.type, detail: nodeDetail(update) } } : n));
@@ -341,6 +343,7 @@ function Editor() {
     catch (e) { setMessage("停止失敗: " + String(e)); setStopping(false); }
   }
   function updateSettings(patch: Partial<Scenario["settings"]>) {
+    if (busy) return;
     checkpoint();
     setScenario(s => ({ ...s, settings: { ...s.settings, ...patch } }));
   }
@@ -376,7 +379,7 @@ function Editor() {
           <button disabled={busy || !redoStack.length} onClick={redo} title="Ctrl+Y / Ctrl+Shift+Z">↷ やり直す</button>
           <button disabled={busy} onClick={copySelected} title="Ctrl+C">コピー</button>
           <button disabled={busy || !clipboard.current.nodes.length} onClick={paste} title="Ctrl+V">貼り付け</button>
-          <button disabled={busy} onClick={persist}>保存</button>
+          <button disabled={busy} onClick={persist} title="Ctrl+S">保存</button>
           <button disabled={busy} onClick={exportTest}>TS出力</button>
           <button className="record-button" disabled={busy} onClick={startRecording}>{recording ? "記録中…" : "● 記録"}</button>
           <button className="run-button" disabled={busy} onClick={() => run(false)}>▶ 実行</button>
@@ -403,7 +406,7 @@ function Editor() {
         <p>左ドラッグで範囲選択、選択ノードをまとめて移動。右クリックでノードの追加や削除ができます。</p>
       </aside>
       <section className="canvas"><div className="canvas-heading"><span className="canvas-dot"/> フローチャート <span className="canvas-count">{nodes.length} ノード · {edges.length} 接続</span></div><ReactFlow colorMode={theme} nodeTypes={nodeTypes} nodes={displayNodes} edges={edges} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} onNodesChange={busy ? undefined : changeNodes} onEdgesChange={busy ? undefined : changeEdges} onNodeDragStart={busy ? undefined : () => checkpoint()} onConnect={busy ? undefined : onConnect} onPaneClick={() => { setSelected(null); setContextMenu(null); }} onPaneContextMenu={event => openContextMenu(event)} onNodeContextMenu={(event, node) => { setSelected(node.id); openContextMenu(event, node.id); }} onEdgeContextMenu={(event, edge) => openContextMenu(event, undefined, edge.id)} onNodeClick={(_, n) => { setSelected(n.id); setContextMenu(null); }} onEdgeClick={() => { setSelected(null); setContextMenu(null); }} selectionOnDrag selectionMode={SelectionMode.Partial} panOnDrag={[1]} deleteKeyCode={null} fitView fitViewOptions={{ maxZoom: 0.82, padding: 0.2 }} minZoom={0.25}><Background/><Controls/><MiniMap/></ReactFlow></section>
-      <aside className="inspector"><div className="panel-kicker">PROPERTIES</div><h3>ノード設定</h3>{selectedNode ? <>
+      <aside className="inspector"><div className="panel-kicker">PROPERTIES</div><h3>ノード設定</h3><fieldset disabled={busy} className="inspector-fields">{selectedNode ? <>
         <label>表示名<input value={selectedNode.label} onChange={e => editNode({ ...selectedNode, label: e.target.value })}/></label>
         {selectedNode.type === "navigate" && <label>URL<input value={selectedNode.config.url} onChange={e => editNode({ ...selectedNode, config: { url: e.target.value } })}/></label>}
         {(selectedNode.type === "click" || selectedNode.type === "fill" || selectedNode.type === "assertVisible" || selectedNode.type === "assertText" || selectedNode.type === "condition") && <>
@@ -423,7 +426,7 @@ function Editor() {
         {selectedNode.type === "wait" && <label>待機ミリ秒<input type="number" min={0} value={selectedNode.config.durationMs} onChange={e => editNode({ ...selectedNode, config: { durationMs: Number(e.target.value) } })}/></label>}
         <label className="screenshot-option"><input type="checkbox" aria-label="スクリーンショットを撮影" checked={selectedNode.screenshot ?? false} onChange={e => editNode({ ...selectedNode, screenshot: e.target.checked })}/> 実行後にスクリーンショットを撮影</label>
         <button disabled={busy} onClick={removeSelected}>ノード削除</button>
-      </> : <p>ノードを選択してください。</p>}</aside>
+      </> : <p>ノードを選択してください。</p>}</fieldset></aside>
     </main>
     {contextMenu && <div className="flow-context-menu" role="menu" style={{ left: contextMenu.x, top: contextMenu.y }} onMouseDown={event => event.stopPropagation()}>
       <div className="context-menu-heading">ノードを追加</div>
