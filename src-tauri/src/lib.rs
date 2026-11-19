@@ -13,6 +13,7 @@ async fn stop_scenario(state: State<'_, RunnerState>) -> Result<(), String> {
     let running = state.child.lock().map_err(|e| e.to_string())?.clone();
     let child = running.ok_or("実行中のシナリオがありません")?;
     let mut process = child.lock().map_err(|e| e.to_string())?;
+    if process.try_wait().map_err(|e| e.to_string())?.is_some() { return Ok(()); }
     if let Some(input) = process.stdin.as_mut() {
         input.write_all(b"STOP\n").map_err(|e| e.to_string())?;
         input.flush().map_err(|e| e.to_string())?;
