@@ -43,8 +43,9 @@ async function main() {
       const debug = process.argv.includes("--debug");
       let resume: (() => void) | null = null;
       let stepMode = debug;
-      const beforeNode = debug ? async () => {
+      const beforeNode = debug ? async (_node: unknown, notifyPaused: () => void) => {
         if (!stepMode) return;
+        notifyPaused();
         await new Promise<void>(resolve => { resume = resolve; });
       } : undefined;
       if (lines) {
