@@ -86,3 +86,37 @@ test("configures condition node and per-node screenshot", async ({ page }) => {
   await expect(page.getByLabel("スクリーンショットを撮影")).toBeChecked();
   await expect(page.locator('[data-node-kind="condition"]')).toContainText("Ready");
 });
+
+test("new nodes appear inside the visible canvas", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  const canvas = await page.locator(".canvas .react-flow").boundingBox();
+  const node = await page.locator('[data-node-kind="navigate"]').boundingBox();
+  expect(canvas).not.toBeNull();
+  expect(node).not.toBeNull();
+  expect(node!.x).toBeGreaterThan(canvas!.x);
+  expect(node!.y).toBeGreaterThan(canvas!.y);
+  expect(node!.x + node!.width).toBeLessThan(canvas!.x + canvas!.width);
+  expect(node!.y + node!.height).toBeLessThan(canvas!.y + canvas!.height);
+});
+
+test("log panel can be resized without covering workspace", async ({ page }) => {
+  await page.goto("/");
+  const logs = page.locator(".logs");
+  const before = await logs.boundingBox();
+  const handle = page.getByRole("separator", { name: "ログ表示の高さを変更" });
+  await handle.focus();
+  await page.keyboard.press("ArrowUp");
+  const after = await logs.boundingBox();
+  expect(after!.height).toBeGreaterThan(before!.height);
+  const workspace = await page.locator(".sidebar").boundingBox();
+  expect(workspace!.y + workspace!.height).toBeLessThanOrEqual(after!.y + 1);
+});
+
+test("connection handles are easy to target", async ({ page }) => {
+  await page.goto("/");
+  const handle = page.locator('[data-node-kind="start"] .react-flow__handle');
+  const box = await handle.boundingBox();
+  expect(box!.width).toBeGreaterThanOrEqual(18);
+  expect(box!.height).toBeGreaterThanOrEqual(18);
+});
