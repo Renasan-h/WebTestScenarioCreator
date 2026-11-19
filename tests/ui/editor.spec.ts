@@ -210,3 +210,32 @@ test("connection handles stay stationary on hover for all node types", async ({ 
     expect(Math.abs(after!.y - before.y)).toBeLessThan(1);
   }
 });
+
+test("right-click menu deletes an action node and keeps required start node", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "＋ 待機" }).click();
+  await page.locator('[data-node-kind="wait"]').click({ button: "right" });
+  await expect(page.getByRole("menuitem", { name: "削除" })).toBeVisible();
+  await page.getByRole("menuitem", { name: "削除" }).click();
+  await expect(page.locator('[data-node-kind="wait"]')).toHaveCount(0);
+  await expect(page.locator('[data-node-kind="start"]')).toHaveCount(1);
+});
+
+test("marquee selection supports multiple selected nodes", async ({ page }) => {
+  await openEditor(page);
+  const start = page.locator('[data-node-kind="start"]');
+  const end = page.locator('[data-node-kind="end"]');
+  const startBox = await start.boundingBox();
+  const endBox = await end.boundingBox();
+  expect(startBox).not.toBeNull();
+  expect(endBox).not.toBeNull();
+  const left = Math.min(startBox!.x, endBox!.x) - 15;
+  const top = Math.min(startBox!.y, endBox!.y) - 15;
+  const right = Math.max(startBox!.x + startBox!.width, endBox!.x + endBox!.width) + 15;
+  const bottom = Math.max(startBox!.y + startBox!.height, endBox!.y + endBox!.height) + 15;
+  await page.mouse.move(left, top);
+  await page.mouse.down();
+  await page.mouse.move(right, bottom, { steps: 10 });
+  await page.mouse.up();
+  await expect(page.locator(".canvas .react-flow__node.selected")).toHaveCount(2);
+});
