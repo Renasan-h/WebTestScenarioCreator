@@ -29,3 +29,31 @@ describe("engine", () => {
     expect(events.at(-1)).toBe("run.finished");
   });
 });
+
+describe("condition execution", () => {
+  const branch: Scenario = {
+    ...s,
+    nodes: [
+      ...s.nodes,
+      { id: "condition", type: "condition", label: "condition", position: { x: 0, y: 0 }, config: { check: "visible", locator: { strategy: "css", value: "#ready" } }, screenshot: true },
+      { id: "other", type: "wait", label: "other", position: { x: 0, y: 0 }, config: { durationMs: 1 } },
+    ],
+    edges: [
+      { id: "a", source: "start", target: "condition" },
+      { id: "yes", source: "condition", target: "wait", sourceHandle: "true" },
+      { id: "no", source: "condition", target: "other", sourceHandle: "false" },
+      { id: "b", source: "wait", target: "end" },
+      { id: "c", source: "other", target: "end" },
+    ],
+  };
+  for (const answer of [true, false]) {
+    it(`follows the ${answer ? "true" : "false"} branch`, async () => {
+      const visited: string[] = [];
+      await executeScenario(branch, async n => {
+        visited.push(n.id);
+        if (n.type === "condition") return answer;
+      }, () => {});
+      expect(visited).toEqual(["start", "condition", answer ? "wait" : "other", "end"]);
+    });
+  }
+});
