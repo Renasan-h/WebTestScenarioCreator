@@ -9,6 +9,16 @@ struct RunnerState {
 }
 
 #[tauri::command]
+async fn debug_control(state: State<'_, RunnerState>, command: String) -> Result<(), String> {
+    if command != "STEP" && command != "CONTINUE" { return Err("Invalid debug command".into()); }
+    let child = state.child.lock().map_err(|e| e.to_string())?.clone().ok_or("実行中のシナリオがありません")?;
+    let mut process = child.lock().map_err(|e| e.to_string())?;
+    let input = process.stdin.as_mut().ok_or("Missing stdin")?;
+    input.write_all(format!("{command}\n").as_bytes()).map_err(|e| e.to_string())?;
+    input.flush().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn stop_scenario(state: State<'_, RunnerState>) -> Result<(), String> {
     let running = state.child.lock().map_err(|e| e.to_string())?.clone();
     let child = running.ok_or("実行中のシナリオがありません")?;
@@ -29,6 +39,7 @@ async fn run_scenario(
     state: State<'_, RunnerState>,
     scenario_json: String,
     record: Option<bool>,
+    debug: Option<bool>,
 ) -> Result<(), String> {
     // Development-only: the portable release will require a bundled runtime.
     let child_slot = {
@@ -38,6 +49,7 @@ async fn run_scenario(
         let mut command = Command::new("node");
         command.arg("--import").arg("tsx").arg("sidecar/main.ts").arg("--stdin");
         if record.unwrap_or(false) { command.arg("--record"); }
+        if debug.unwrap_or(false) { command.arg("--debug"); }
         let child = command.current_dir(root)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -97,7 +109,7 @@ pub fn run() {
         .manage(RunnerState::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .invoke_handler(tauri::generate_handler![run_scenario, stop_scenario])
+        .invoke_handler(tauri::generate_handler![run_scenario, stop_scenario, debug_control])
         .run(tauri::generate_context!())
         .expect("error while running scenario studio");
 }
