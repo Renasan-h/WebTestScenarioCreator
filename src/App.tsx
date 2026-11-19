@@ -168,7 +168,7 @@ function Editor() {
     const removeEdges = new Set(edgeIds);
     if (!removable.size && !removeEdges.size) { setMessage("削除可能なオブジェクトがありません（開始・終了ノードは保護されています）"); return; }
     checkpoint();
-    setScenario(s => ({ ...s, nodes: s.nodes.filter(n => !removable.has(n.id)) }));
+    setScenario(s => ({ ...s, nodes: s.nodes.filter(n => !removable.has(n.id)), edges: s.edges.filter(e => !removable.has(e.source) && !removable.has(e.target) && !removeEdges.has(e.id)) }));
     setNodes(ns => ns.filter(n => !removable.has(n.id)));
     setEdges(es => es.filter(e => !removable.has(e.source) && !removable.has(e.target) && !removeEdges.has(e.id)));
     if (selected && removable.has(selected)) setSelected(null);
