@@ -89,7 +89,7 @@ function Editor() {
   const [message, setMessage] = useState("準備完了");
   const [undoStack, setUndoStack] = useState<Scenario[]>([]);
   const [redoStack, setRedoStack] = useState<Scenario[]>([]);
-  const clipboard = useRef<ScenarioNode[]>([]);
+  const clipboard = useRef<{ nodes: ScenarioNode[]; edges: Scenario["edges"] }>({ nodes: [], edges: [] });
   const lastPaste = useRef(0);
   const historyLock = useRef(false);
   function checkpoint() {
@@ -124,18 +124,22 @@ function Editor() {
     if (selectedIds.size === 0 && selected) selectedIds.add(selected);
     const copied = snapshot().nodes.filter(n => selectedIds.has(n.id) && n.type !== "start" && n.type !== "end");
     if (!copied.length) { setMessage("コピー可能なノードを選択してください"); return; }
-    clipboard.current = structuredClone(copied);
+    const ids = new Set(copied.map(node => node.id));
+    clipboard.current = { nodes: structuredClone(copied), edges: structuredClone(snapshot().edges.filter(edge => ids.has(edge.source) && ids.has(edge.target))) };
     lastPaste.current = 0;
-    setMessage(copied.length + "個のノードをコピーしました");
+    setMessage(copied.length + "個のノードと内部の接続をコピーしました");
   }
   function paste() {
-    if (busy || !clipboard.current.length) return;
+    if (busy || !clipboard.current.nodes.length) return;
     checkpoint();
     lastPaste.current++;
     const offset = lastPaste.current * 36;
-    const copies = clipboard.current.map(n => ({ ...structuredClone(n), id: crypto.randomUUID(), position: { x: n.position.x + offset, y: n.position.y + offset } }));
-    setScenario(s => ({ ...s, nodes: [...s.nodes, ...copies] }));
+    const idMap = new Map(clipboard.current.nodes.map(node => [node.id, crypto.randomUUID()]));
+    const copies = clipboard.current.nodes.map(n => ({ ...structuredClone(n), id: idMap.get(n.id)!, position: { x: n.position.x + offset, y: n.position.y + offset } }));
+    const copiedEdges = clipboard.current.edges.map(edge => ({ ...structuredClone(edge), id: crypto.randomUUID(), source: idMap.get(edge.source)!, target: idMap.get(edge.target)! }));
+    setScenario(s => ({ ...s, nodes: [...s.nodes, ...copies], edges: [...s.edges, ...copiedEdges] }));
     setNodes(ns => [...ns.map(n => ({ ...n, selected: false })), ...toFlow({ ...scenario, nodes: copies, edges: [] }).nodes.map(n => ({ ...n, selected: true }))]);
+    setEdges(es => [...es.map(edge => ({ ...edge, selected: false })), ...copiedEdges]);
     setSelected(copies.length === 1 ? copies[0].id : null);
     setMessage(copies.length + "個のノードを貼り付けました");
   }
@@ -371,7 +375,7 @@ function Editor() {
           <button disabled={busy || !undoStack.length} onClick={undo} title="Ctrl+Z">↶ 元に戻す</button>
           <button disabled={busy || !redoStack.length} onClick={redo} title="Ctrl+Y / Ctrl+Shift+Z">↷ やり直す</button>
           <button disabled={busy} onClick={copySelected} title="Ctrl+C">コピー</button>
-          <button disabled={busy || !clipboard.current.length} onClick={paste} title="Ctrl+V">貼り付け</button>
+          <button disabled={busy || !clipboard.current.nodes.length} onClick={paste} title="Ctrl+V">貼り付け</button>
           <button disabled={busy} onClick={persist}>保存</button>
           <button disabled={busy} onClick={exportTest}>TS出力</button>
           <button className="record-button" disabled={busy} onClick={startRecording}>{recording ? "記録中…" : "● 記録"}</button>
