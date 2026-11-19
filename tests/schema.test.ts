@@ -19,3 +19,34 @@ describe("scenario validation", () => {
   it("detects cycles", () => expect(validateGraph({ ...base, edges: [...base.edges, { id: "cycle", source: "end", target: "start" }] })).toContain("End node has outgoing edge"));
   it("detects unreachable nodes", () => expect(validateGraph({ ...base, nodes: [...base.nodes, { id: "orphan", label: "orphan", type: "wait", position: { x: 0, y: 200 }, config: { durationMs: 10 } }] })).toContain("Unreachable node: orphan"));
 });
+
+describe("branching and screenshots", () => {
+  const branching: Scenario = {
+    ...base,
+    nodes: [
+      base.nodes[0],
+      { id: "condition", type: "condition", label: "条件", position: { x: 0, y: 50 }, config: { locator: { strategy: "css", value: "#ready" }, check: "visible" }, screenshot: true },
+      { id: "yes", type: "wait", label: "yes", position: { x: 0, y: 100 }, config: { durationMs: 1 } },
+      { id: "no", type: "wait", label: "no", position: { x: 100, y: 100 }, config: { durationMs: 1 } },
+      base.nodes[1],
+    ],
+    edges: [
+      { id: "a", source: "start", target: "condition" },
+      { id: "b", source: "condition", target: "yes", sourceHandle: "true" },
+      { id: "c", source: "condition", target: "no", sourceHandle: "false" },
+      { id: "d", source: "yes", target: "end" },
+      { id: "e", source: "no", target: "end" },
+    ],
+  };
+  it("accepts both branches and screenshot flags", () => {
+    expect(scenarioSchema.parse(branching).nodes[1].screenshot).toBe(true);
+    expect(validateGraph(branching)).toEqual([]);
+  });
+  it("rejects missing false branch", () => {
+    expect(validateGraph({ ...branching, edges: branching.edges.filter(e => e.id !== "c") })).toContain("Condition requires true and false outgoing edges: condition");
+  });
+  it("rejects branch cycles", () => {
+    const edges = branching.edges.map(e => e.id === "d" ? { ...e, target: "condition" } : e);
+    expect(validateGraph({ ...branching, edges })).toContain("Cycle detected");
+  });
+});
