@@ -293,3 +293,38 @@ test("dragging a node can be undone and redone", async ({ page }) => {
   const redone = await node.boundingBox();
   expect(Math.abs(redone!.x - moved!.x)).toBeLessThan(3);
 });
+
+test("dragging two selected nodes creates one undo step", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  await page.getByRole("button", { name: "＋ 待機" }).click();
+  const first = page.locator('.react-flow__node:has([data-node-kind="navigate"])');
+  const second = page.locator('.react-flow__node:has([data-node-kind="wait"])');
+  await first.click();
+  await second.click({ modifiers: ["Shift"] });
+  await expect(page.locator(".canvas .react-flow__node.selected")).toHaveCount(2);
+  const beforeFirst = await first.boundingBox();
+  const beforeSecond = await second.boundingBox();
+  expect(beforeFirst).not.toBeNull();
+  expect(beforeSecond).not.toBeNull();
+  const x = beforeFirst!.x + beforeFirst!.width / 2;
+  const y = beforeFirst!.y + 20;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 80, y + 45, { steps: 12 });
+  await page.mouse.up();
+  const movedFirst = await first.boundingBox();
+  const movedSecond = await second.boundingBox();
+  expect(movedFirst!.x).toBeGreaterThan(beforeFirst!.x + 25);
+  expect(movedSecond!.x).toBeGreaterThan(beforeSecond!.x + 25);
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  const restoredFirst = await first.boundingBox();
+  const restoredSecond = await second.boundingBox();
+  expect(Math.abs(restoredFirst!.x - beforeFirst!.x)).toBeLessThan(3);
+  expect(Math.abs(restoredSecond!.x - beforeSecond!.x)).toBeLessThan(3);
+  await page.getByRole("button", { name: "↷ やり直す" }).click();
+  const redoneFirst = await first.boundingBox();
+  const redoneSecond = await second.boundingBox();
+  expect(Math.abs(redoneFirst!.x - movedFirst!.x)).toBeLessThan(3);
+  expect(Math.abs(redoneSecond!.x - movedSecond!.x)).toBeLessThan(3);
+});
