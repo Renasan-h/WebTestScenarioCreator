@@ -92,6 +92,7 @@ function Editor() {
   const clipboard = useRef<{ nodes: ScenarioNode[]; edges: Scenario["edges"] }>({ nodes: [], edges: [] });
   const lastPaste = useRef(0);
   const historyLock = useRef(false);
+  const dragStartPositions = useRef<Map<string, { x: number; y: number }> | null>(null);
   function checkpoint() {
     if (historyLock.current) return;
     const state = snapshot();
@@ -187,6 +188,24 @@ function Editor() {
       position: flow.screenToFlowPosition({ x: event.clientX, y: event.clientY }),
       nodeId, edgeId,
     });
+  }
+  function startNodeDrag() {
+    dragStartPositions.current = new Map(nodes.map(node => [node.id, { ...node.position }]));
+    checkpoint();
+  }
+  function endNodeDrag() {
+    const before = dragStartPositions.current;
+    dragStartPositions.current = null;
+    if (!before) return;
+    const moved = nodes.some(node => {
+      const original = before.get(node.id);
+      return original && (original.x !== node.position.x || original.y !== node.position.y);
+    });
+    if (!moved) {
+      setUndoStack(stack => stack.slice(0, -1));
+    } else {
+      setMessage("ノードの移動を記録しました（Ctrl+Zで元に戻せます）");
+    }
   }
   function changeNodes(changes: NodeChange<Node>[]) {
     const allowed = changes.filter(change => change.type !== "remove" ||
@@ -441,7 +460,7 @@ function Editor() {
         <div className="panel-kicker">BUILD</div><h3>ノード追加</h3>{actions.map(a => <button className="palette" key={a.type} disabled={busy} onClick={() => add(a.type)}>＋ {a.name}</button>)}
         <p>左ドラッグで範囲選択、選択ノードをまとめて移動。右クリックでノードの追加や削除ができます。</p>
       </aside>
-      <section className="canvas"><div className="canvas-heading"><span className="canvas-dot"/> フローチャート <span className="canvas-count">{nodes.length} ノード · {edges.length} 接続</span></div><ReactFlow colorMode={theme} nodeTypes={nodeTypes} nodes={displayNodes} edges={edges} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} onNodesChange={busy ? undefined : changeNodes} onEdgesChange={busy ? undefined : changeEdges} onNodeDragStart={busy ? undefined : () => checkpoint()} onConnect={busy ? undefined : onConnect} onPaneClick={() => { setSelected(null); setContextMenu(null); }} onPaneContextMenu={event => openContextMenu(event)} onNodeContextMenu={(event, node) => { setSelected(node.id); openContextMenu(event, node.id); }} onEdgeContextMenu={(event, edge) => openContextMenu(event, undefined, edge.id)} onNodeClick={(_, n) => { setSelected(n.id); setContextMenu(null); }} onEdgeClick={() => { setSelected(null); setContextMenu(null); }} selectionOnDrag selectionMode={SelectionMode.Partial} panOnDrag={[1]} deleteKeyCode={null} fitView fitViewOptions={{ maxZoom: 0.82, padding: 0.2 }} minZoom={0.25}><Background/><Controls/><MiniMap/></ReactFlow></section>
+      <section className="canvas"><div className="canvas-heading"><span className="canvas-dot"/> フローチャート <span className="canvas-count">{nodes.length} ノード · {edges.length} 接続</span></div><ReactFlow colorMode={theme} nodeTypes={nodeTypes} nodes={displayNodes} edges={edges} nodesDraggable={!busy} nodesConnectable={!busy} elementsSelectable={!busy} onNodesChange={busy ? undefined : changeNodes} onEdgesChange={busy ? undefined : changeEdges} onNodeDragStart={busy ? undefined : startNodeDrag} onNodeDragStop={busy ? undefined : endNodeDrag} onConnect={busy ? undefined : onConnect} onPaneClick={() => { setSelected(null); setContextMenu(null); }} onPaneContextMenu={event => openContextMenu(event)} onNodeContextMenu={(event, node) => { setSelected(node.id); openContextMenu(event, node.id); }} onEdgeContextMenu={(event, edge) => openContextMenu(event, undefined, edge.id)} onNodeClick={(_, n) => { setSelected(n.id); setContextMenu(null); }} onEdgeClick={() => { setSelected(null); setContextMenu(null); }} selectionOnDrag selectionMode={SelectionMode.Partial} panOnDrag={[1]} deleteKeyCode={null} fitView fitViewOptions={{ maxZoom: 0.82, padding: 0.2 }} minZoom={0.25}><Background/><Controls/><MiniMap/></ReactFlow></section>
       <aside className="inspector"><div className="panel-kicker">PROPERTIES</div><h3>ノード設定</h3><fieldset disabled={busy} className="inspector-fields">{selectedNode ? <>
         <label>表示名<input value={selectedNode.label} onChange={e => editNode({ ...selectedNode, label: e.target.value })}/></label>
         {selectedNode.type === "navigate" && <label>URL<input value={selectedNode.config.url} onChange={e => editNode({ ...selectedNode, config: { url: e.target.value } })}/></label>}
