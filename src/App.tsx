@@ -162,12 +162,15 @@ function Editor() {
       return;
     }
     checkpoint();
-    setEdges(existing => addEdge(connection, existing));
-    setScenario(current => ({ ...current, edges: [...current.edges, {
-      id: `xy-edge__${connection.source}${connection.sourceHandle ?? ""}-${connection.target}${connection.targetHandle ?? ""}`,
-      source: connection.source, target: connection.target,
-      sourceHandle: connection.sourceHandle ?? undefined, targetHandle: connection.targetHandle ?? undefined,
-    }] }));
+    const edge = {
+      id: crypto.randomUUID(),
+      source: connection.source,
+      target: connection.target,
+      sourceHandle: connection.sourceHandle ?? undefined,
+      targetHandle: connection.targetHandle ?? undefined,
+    };
+    setEdges(existing => addEdge(edge, existing));
+    setScenario(current => ({ ...current, edges: [...current.edges, edge] }));
     setMessage("ノードを接続しました");
   }, [scenario, nodes, edges]);
   function removeObjects(nodeIds: string[], edgeIds: string[] = []) {
