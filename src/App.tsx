@@ -163,6 +163,11 @@ function Editor() {
     }
     checkpoint();
     setEdges(existing => addEdge(connection, existing));
+    setScenario(current => ({ ...current, edges: [...current.edges, {
+      id: `xy-edge__${connection.source}${connection.sourceHandle ?? ""}-${connection.target}${connection.targetHandle ?? ""}`,
+      source: connection.source, target: connection.target,
+      sourceHandle: connection.sourceHandle ?? undefined, targetHandle: connection.targetHandle ?? undefined,
+    }] }));
     setMessage("ノードを接続しました");
   }, [scenario, nodes, edges]);
   function removeObjects(nodeIds: string[], edgeIds: string[] = []) {
@@ -199,7 +204,7 @@ function Editor() {
     const before = dragStartPositions.current;
     dragStartPositions.current = null;
     if (!before) return;
-    const moved = nodes.some(node => {
+    const moved = flow.getNodes().some(node => {
       const original = before.get(node.id);
       return original && (original.x !== node.position.x || original.y !== node.position.y);
     });
