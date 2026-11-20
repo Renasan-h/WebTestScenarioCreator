@@ -203,11 +203,12 @@ function Editor() {
     dragRedoBackup.current = redoStack;
     checkpoint();
   }
-  function endNodeDrag() {
+  function endNodeDrag(_event: React.MouseEvent, draggedNode: Node, draggedNodes: Node[]) {
     const before = dragStartPositions.current;
     dragStartPositions.current = null;
     if (!before) return;
-    const moved = flow.getNodes().some(node => {
+    // React Flowの終了イベントに渡される座標を使用し、Reactのstate反映待ちを避ける。
+    const moved = [draggedNode, ...draggedNodes].some(node => {
       const original = before.get(node.id);
       return original && (original.x !== node.position.x || original.y !== node.position.y);
     });
