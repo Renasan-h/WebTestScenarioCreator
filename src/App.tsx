@@ -203,7 +203,7 @@ function Editor() {
     dragRedoBackup.current = redoStack;
     checkpoint();
   }
-  function endNodeDrag(_event: React.MouseEvent, draggedNode: Node, draggedNodes: Node[]) {
+  function endNodeDrag(_event: unknown, draggedNode: Node, draggedNodes: Node[]) {
     const before = dragStartPositions.current;
     dragStartPositions.current = null;
     if (!before) return;
