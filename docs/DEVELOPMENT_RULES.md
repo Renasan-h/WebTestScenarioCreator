@@ -57,3 +57,11 @@ cargo check --manifest-path src-tauri/Cargo.toml
 - `docs/DEVELOPMENT_RULES.md`: 運用ルール変更時に更新。
 - `docs/HANDOVER.md`: **開発作業の区切りごとに必ず更新**。最新コミット、完了内容、未検証事項、残課題、次の作業を記載。
 - 開発報告にはコミットSHA、変更内容、テスト実行の有無、CIの状態を含める。
+
+## Phase管理
+
+- 開発計画は `docs/ROADMAP.md` でPhase 0～7に分けて管理する。
+- 各作業の開始時に現在のPhaseと直近の未完了タスクを確認する。
+- **実装済みと検証済みを区別**し、テスト未実行のPhaseを「完了」としない。
+- 開発報告では対象Phaseと進捗を示し、作業区切りごとに `docs/HANDOVER.md` の現在Phase・次の作業を更新する。
+- Phaseの範囲や完了条件を変更した際は `docs/ROADMAP.md` を更新する。
