@@ -256,13 +256,13 @@ test("copies multiple selected action nodes as a group", async ({ page }) => {
   await expect(page.locator('[data-node-kind="wait"]')).toHaveCount(1);
 });
 
-test("rejects connections into start and self connections without changing the graph", async ({ page }) => {
+test("rejects self connections without changing the graph", async ({ page }) => {
   await openEditor(page);
   await page.getByRole("button", { name: "＋ URL移動" }).click();
-  const startTarget = page.locator('[data-node-kind="start"] .react-flow__handle');
+  const actionTarget = page.locator('[data-node-kind="navigate"] .react-flow__handle.target');
   const actionSource = page.locator('[data-node-kind="navigate"] .react-flow__handle.source');
   const sourceBox = await actionSource.boundingBox();
-  const targetBox = await startTarget.boundingBox();
+  const targetBox = await actionTarget.boundingBox();
   expect(sourceBox).not.toBeNull();
   expect(targetBox).not.toBeNull();
   await page.mouse.move(sourceBox!.x + sourceBox!.width / 2, sourceBox!.y + sourceBox!.height / 2);
