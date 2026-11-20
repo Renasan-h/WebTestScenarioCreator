@@ -328,3 +328,38 @@ test("dragging two selected nodes creates one undo step", async ({ page }) => {
   expect(Math.abs(redoneFirst!.x - movedFirst!.x)).toBeLessThan(3);
   expect(Math.abs(redoneSecond!.x - movedSecond!.x)).toBeLessThan(3);
 });
+
+async function connectHandles(page: Page, source: string, target: string) {
+  const from = await page.locator(source).boundingBox();
+  const to = await page.locator(target).boundingBox();
+  expect(from).not.toBeNull();
+  expect(to).not.toBeNull();
+  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 15 });
+  await page.mouse.up();
+}
+
+test("creating and deleting an edge can each be undone and redone", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  await connectHandles(
+    page,
+    '[data-node-kind="start"] .react-flow__handle.source',
+    '[data-node-kind="navigate"] .react-flow__handle.target',
+  );
+  const edge = page.locator(".canvas .react-flow__edge");
+  await expect(edge).toHaveCount(1);
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  await expect(edge).toHaveCount(0);
+  await page.getByRole("button", { name: "↷ やり直す" }).click();
+  await expect(edge).toHaveCount(1);
+
+  await edge.click({ button: "right" });
+  await page.getByRole("menuitem", { name: "削除" }).click();
+  await expect(edge).toHaveCount(0);
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  await expect(edge).toHaveCount(1);
+  await page.getByRole("button", { name: "↷ やり直す" }).click();
+  await expect(edge).toHaveCount(0);
+});
