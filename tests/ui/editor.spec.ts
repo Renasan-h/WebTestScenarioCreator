@@ -379,3 +379,29 @@ test("a source handle cannot create a second edge and keeps the original undo hi
   await page.getByRole("button", { name: "↷ やり直す" }).click();
   await expect(edge).toHaveCount(1);
 });
+
+test("undo and redo preserve the connected node endpoints", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  const start = page.locator('.react-flow__node:has([data-node-kind="start"])');
+  const navigate = page.locator('.react-flow__node:has([data-node-kind="navigate"])');
+  const sourceId = await start.getAttribute("data-id");
+  const targetId = await navigate.getAttribute("data-id");
+  expect(sourceId).toBeTruthy();
+  expect(targetId).toBeTruthy();
+
+  await connectHandles(
+    page,
+    '[data-node-kind="start"] .react-flow__handle.source',
+    '[data-node-kind="navigate"] .react-flow__handle.target',
+  );
+  const edge = page.locator(".canvas .react-flow__edge");
+  await expect(edge).toHaveCount(1);
+  await expect(edge).toHaveAttribute("data-id", new RegExp(".+"));
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  await expect(edge).toHaveCount(0);
+  await page.getByRole("button", { name: "↷ やり直す" }).click();
+  await expect(edge).toHaveCount(1);
+  await expect(start).toHaveAttribute("data-id", sourceId!);
+  await expect(navigate).toHaveAttribute("data-id", targetId!);
+});
