@@ -363,3 +363,19 @@ test("creating and deleting an edge can each be undone and redone", async ({ pag
   await page.getByRole("button", { name: "↷ やり直す" }).click();
   await expect(edge).toHaveCount(0);
 });
+
+test("a source handle cannot create a second edge and keeps the original undo history", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  await page.getByRole("button", { name: "＋ 待機" }).click();
+  const startSource = '[data-node-kind="start"] .react-flow__handle.source';
+  await connectHandles(page, startSource, '[data-node-kind="navigate"] .react-flow__handle.target');
+  const edge = page.locator(".canvas .react-flow__edge");
+  await expect(edge).toHaveCount(1);
+  await connectHandles(page, startSource, '[data-node-kind="wait"] .react-flow__handle.target');
+  await expect(edge).toHaveCount(1);
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  await expect(edge).toHaveCount(0);
+  await page.getByRole("button", { name: "↷ やり直す" }).click();
+  await expect(edge).toHaveCount(1);
+});
