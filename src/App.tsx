@@ -93,6 +93,7 @@ function Editor() {
   const lastPaste = useRef(0);
   const historyLock = useRef(false);
   const dragStartPositions = useRef<Map<string, { x: number; y: number }> | null>(null);
+  const dragRedoBackup = useRef<Scenario[]>([]);
   function checkpoint() {
     if (historyLock.current) return;
     const state = snapshot();
@@ -191,6 +192,7 @@ function Editor() {
   }
   function startNodeDrag() {
     dragStartPositions.current = new Map(nodes.map(node => [node.id, { ...node.position }]));
+    dragRedoBackup.current = redoStack;
     checkpoint();
   }
   function endNodeDrag() {
@@ -203,6 +205,7 @@ function Editor() {
     });
     if (!moved) {
       setUndoStack(stack => stack.slice(0, -1));
+      setRedoStack(dragRedoBackup.current);
     } else {
       setMessage("ノードの移動を記録しました（Ctrl+Zで元に戻せます）");
     }
