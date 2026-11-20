@@ -271,3 +271,25 @@ test("rejects connections into start and self connections without changing the g
   await page.mouse.up();
   await expect(page.locator(".canvas .react-flow__edge")).toHaveCount(0);
 });
+
+test("dragging a node can be undone and redone", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  const node = page.locator('.react-flow__node:has([data-node-kind="navigate"])');
+  const original = await node.boundingBox();
+  expect(original).not.toBeNull();
+  const x = original!.x + original!.width / 2;
+  const y = original!.y + 20;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 90, y + 55, { steps: 12 });
+  await page.mouse.up();
+  const moved = await node.boundingBox();
+  expect(moved!.x).toBeGreaterThan(original!.x + 30);
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  const undone = await node.boundingBox();
+  expect(Math.abs(undone!.x - original!.x)).toBeLessThan(3);
+  await page.getByRole("button", { name: "↷ やり直す" }).click();
+  const redone = await node.boundingBox();
+  expect(Math.abs(redone!.x - moved!.x)).toBeLessThan(3);
+});
