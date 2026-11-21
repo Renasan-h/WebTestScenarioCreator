@@ -40,7 +40,7 @@
 
 - [x] Playwright TypeScript / Selenium JavaScript の出力先選択とコード生成を追加（未検証）
 - [ ] Selenium出力コードの単体テストと実ブラウザ検証
-- [ ] Selenium固有の実行設定（headless・Edge/Chromium等）を出力コードへ反映
+- [x] Selenium出力コードにheadless・Edge/Chrome・timeout・viewportを反映（実装済・未検証）
 - [ ] 将来的にSelenium・Playwrightコードから `.pflow` へのインポートを検討（現時点で未実装）
 - [ ] `.pflow` を共通の中間形式として相互変換する仕様を詳細化
 
