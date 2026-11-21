@@ -164,7 +164,7 @@ function Editor() {
       return;
     }
     checkpoint();
-    const edge = {
+    const edge: Edge = {
       id: crypto.randomUUID(),
       source: connection.source,
       target: connection.target,
