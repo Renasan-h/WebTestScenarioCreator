@@ -67,12 +67,18 @@ export function exportSeleniumTest(s: Scenario): string {
   }
   render(s.nodes.find(node => node.type === "start")!.id, "    ", new Set());
   const browser = s.settings.browser === "edge" ? "MicrosoftEdge" : "chrome";
+  const options = s.settings.browser === "edge" ? "edge.Options" : "chrome.Options";
+  const builderOptions = s.settings.browser === "edge" ? "setEdgeOptions" : "setChromeOptions";
+  const headless = s.settings.headless ? "options.addArguments(\"--headless=new\");\n" : "";
   return `// Generated from .pflow. Requires: npm install selenium-webdriver
 import { Builder, By, until } from "selenium-webdriver";
+import * as chrome from "selenium-webdriver/chrome.js";
+import * as edge from "selenium-webdriver/edge.js";
 import * as fs from "node:fs/promises";
 
 const timeoutMs = ${s.settings.timeoutMs};
-const driver = await new Builder().forBrowser(${JSON.stringify(browser)}).build();
+const options = new ${options}();
+${headless}const driver = await new Builder().forBrowser(${JSON.stringify(browser)}).${builderOptions}(options).build();
 try {
   await driver.manage().setTimeouts({ implicit: timeoutMs });
   await driver.manage().window().setRect({ width: ${s.settings.viewport.width}, height: ${s.settings.viewport.height} });
