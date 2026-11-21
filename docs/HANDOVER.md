@@ -1,6 +1,6 @@
 # 開発引き継ぎ（HANDOVER）
 
-> 更新日: 2026-11-21
+> 更新日: 2026-11-22
 > 対象ブランチ: `develop`
 > 最新HEADはGitHubのdevelopブランチで確認する。本書のコミット自身のSHAは事前記載しない。
 
@@ -10,6 +10,10 @@
 - Phase 5（品質確認）を並行して実施。その他の状態・完了条件は [ROADMAP.md](ROADMAP.md) を参照。
 
 ## 最新コミット情報
+
+- 本書更新直前の確認済みコミット: `c3ee35fa57b51a5652643a1fe5d1a8ed50361645` — Selenium出力拡張子の仕様更新。
+- コード修正: `9ebe3d9abe2d35da23409648e2a5abe2030f9319`、構文チェックテスト: `5872450b7226c030220c4ecc82be48af4290d6cc`。
+
 
 - 本書更新直前の確認済みコミット: `f67d883384928923e2f4f61918697675de891acb` — Selenium実行設定のロードマップ更新。
 - 実装: `cb1c8ea739f7956a771699ea32d4b1b5efec611d`、単体テスト: `8ff841f7f1cb4f137547cc1d4d419879e48c84c3`。
@@ -27,6 +31,11 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 3**: Selenium生成コードのES Module import構文に合わせ、出力ファイル拡張子を `.selenium.js` から `.selenium.mjs` に変更。
+- `packages/engine/src/export-selenium.test.ts` にNode.js `--check --input-type=module` を利用した生成コードの構文テストを2件追加。
+- `docs/SPECIFICATION.md` を更新。フロントテスト・ビルド・実ブラウザ実行は未実施。GitHub Actionsは起動していない。
+
 
 - **Phase 3**: Seleniumコード生成にEdge/Chrome Optionsとheadless設定を追加。`settings.browser`と`settings.headless`を出力へ反映。
 - ブラウザ設定のVitestテスト2件を追加。仕様・ロードマップを更新。
@@ -68,6 +77,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **Phase 3優先**: `pnpm test:front` と `pnpm build` で生成Seleniumコードの構文・型を確認し、実ブラウザで `.selenium.mjs` の動作を検証。
+- Seleniumコード実行時には `selenium-webdriver` のインストールが必要。生成ファイルを別ディレクトリへ保存した場合はNode.jsの依存モジュール解決に注意。
+
 
 1. **Phase 3**: `pnpm test:front` / `pnpm build` を実行し、Selenium出力の構文・型・生成結果を検証。生成JSをselenium-webdriver導入環境で実ブラウザ検証。
 2. **Phase 3**: SeleniumのEdge/Chrome/headless出力は実装済・未検証。実ブラウザでの動作と生成コードの依存パッケージ解決を確認。
