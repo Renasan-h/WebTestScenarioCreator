@@ -55,3 +55,23 @@ describe("exportSeleniumTest", () => {
     expect(code).toContain("} else {");
   });
 });
+
+describe("Selenium browser options", () => {
+  it("uses Edge options and enables headless mode when requested", () => {
+    const code = exportSeleniumTest({
+      ...base,
+      settings: { ...base.settings, browser: "edge", headless: true },
+    });
+    expect(code).toContain('forBrowser("MicrosoftEdge")');
+    expect(code).toContain("new edge.Options()");
+    expect(code).toContain('options.addArguments("--headless=new")');
+    expect(code).toContain(".setEdgeOptions(options)");
+  });
+
+  it("uses Chrome options without headless arguments when disabled", () => {
+    const code = exportSeleniumTest(base);
+    expect(code).toContain("new chrome.Options()");
+    expect(code).toContain(".setChromeOptions(options)");
+    expect(code).not.toContain('options.addArguments("--headless=new")');
+  });
+});
