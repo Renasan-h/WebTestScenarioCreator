@@ -32,6 +32,9 @@
 ```powershell
 pnpm install
 pnpm test
+pnpm test:front
+pnpm test:rust
+pnpm test:all
 pnpm build
 pnpm exec playwright install chromium
 pnpm test:e2e
@@ -65,3 +68,11 @@ cargo check --manifest-path src-tauri/Cargo.toml
 - **実装済みと検証済みを区別**し、テスト未実行のPhaseを「完了」としない。
 - 開発報告では対象Phaseと進捗を示し、作業区切りごとに `docs/HANDOVER.md` の現在Phase・次の作業を更新する。
 - Phaseの範囲や完了条件を変更した際は `docs/ROADMAP.md` を更新する。
+
+## テスト実行用npm scripts
+
+- `pnpm test` / `pnpm test:front`: フロントエンドのVitest単体テスト（`vitest run`）。
+- `pnpm test:rust`: Rustの単体・統合テスト（`cargo test --manifest-path src-tauri/Cargo.toml`）。Rustテスト追加時も同じコマンドで実行する。
+- `pnpm test:all`: フロントエンドとRustを順に実行。先のテストが失敗した場合は後続を実行しない。
+- `pnpm test:e2e`: Playwright GUIテスト。 `test:all` には含めない。
+- `cargo check` はコンパイル確認であり、`cargo test` の代替ではない。
