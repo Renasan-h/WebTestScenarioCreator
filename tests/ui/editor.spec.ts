@@ -405,3 +405,30 @@ test("undo and redo preserve the connected node endpoints", async ({ page }) => 
   await expect(start).toHaveAttribute("data-id", sourceId!);
   await expect(navigate).toHaveAttribute("data-id", targetId!);
 });
+
+test("deleting a connected action node removes its edge and undo restores both", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  await connectHandles(
+    page,
+    '[data-node-kind="start"] .react-flow__handle.source',
+    '[data-node-kind="navigate"] .react-flow__handle.target',
+  );
+  const node = page.locator('.react-flow__node:has([data-node-kind="navigate"])');
+  const edge = page.locator(".canvas .react-flow__edge");
+  await expect(node).toHaveCount(1);
+  await expect(edge).toHaveCount(1);
+
+  await node.click();
+  await page.keyboard.press("Delete");
+  await expect(node).toHaveCount(0);
+  await expect(edge).toHaveCount(0);
+
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  await expect(node).toHaveCount(1);
+  await expect(edge).toHaveCount(1);
+
+  await page.getByRole("button", { name: "↷ やり直す" }).click();
+  await expect(node).toHaveCount(0);
+  await expect(edge).toHaveCount(0);
+});
