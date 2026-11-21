@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `6939726bcfc21573fc80ec1622b81a00c3b6a3ec` — Selenium入力上書き仕様の追記。
+- 実装: `ec7b4f1595eb89b7a81af55b404347b8de59075f`、テスト: `71aeed2d4e6eb6917f8bdf51afcadd304a8d4b32`。
+
+
 - 本書更新直前の確認済みコミット: `c3ee35fa57b51a5652643a1fe5d1a8ed50361645` — Selenium出力拡張子の仕様更新。
 - コード修正: `9ebe3d9abe2d35da23409648e2a5abe2030f9319`、構文チェックテスト: `5872450b7226c030220c4ecc82be48af4290d6cc`。
 
@@ -31,6 +35,11 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 3**: Seleniumコード出力の入力ノードを `sendKeys` 単独から `clear` → `sendKeys` に変更。Playwrightの `fill` と同様に既存値を上書きする。
+- `packages/engine/src/export-selenium.test.ts` に入力のクリア・入力順序の単体テストを追加。
+- 仕様書更新。**テスト・ビルド・実ブラウザ検証は未実行**。GitHub Actionsは起動していない。
+
 
 - **Phase 3**: Selenium生成コードのES Module import構文に合わせ、出力ファイル拡張子を `.selenium.js` から `.selenium.mjs` に変更。
 - `packages/engine/src/export-selenium.test.ts` にNode.js `--check --input-type=module` を利用した生成コードの構文テストを2件追加。
@@ -77,6 +86,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **優先**: Selenium出力の `clear` / `sendKeys` の実ブラウザ動作、生成コードのNode.js構文、`pnpm test:front` と `pnpm build` をローカルで検証。
+- SeleniumとPlaywrightの各ノードの意味差（ロケーター、可視判定、タイムアウト）を継続して調査・回帰テスト化。
+
 
 - **Phase 3優先**: `pnpm test:front` と `pnpm build` で生成Seleniumコードの構文・型を確認し、実ブラウザで `.selenium.mjs` の動作を検証。
 - Seleniumコード実行時には `selenium-webdriver` のインストールが必要。生成ファイルを別ディレクトリへ保存した場合はNode.jsの依存モジュール解決に注意。
