@@ -326,8 +326,8 @@ function Editor() {
     try {
       const isSelenium = exportTarget === "selenium";
       const code = isSelenium ? exportSeleniumTest(snapshot()) : exportPlaywrightTest(snapshot());
-      const extension = isSelenium ? "js" : "ts";
-      const p = await save({ defaultPath: scenario.metadata.name + (isSelenium ? ".selenium.js" : ".spec.ts"), filters: [{ name: isSelenium ? "JavaScript" : "TypeScript", extensions: [extension] }] });
+      const extension = isSelenium ? "mjs" : "ts";
+      const p = await save({ defaultPath: scenario.metadata.name + (isSelenium ? ".selenium.mjs" : ".spec.ts"), filters: [{ name: isSelenium ? "JavaScript ES Module" : "TypeScript", extensions: [extension] }] });
       if (!p) return;
       await writeTextFile(p, code);
       setMessage((isSelenium ? "Selenium" : "Playwright") + "コードを出力しました: " + p);
