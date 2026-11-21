@@ -432,3 +432,26 @@ test("deleting a connected action node removes its edge and undo restores both",
   await expect(node).toHaveCount(0);
   await expect(edge).toHaveCount(0);
 });
+
+test("condition YES and NO outputs can connect independently and undo separately", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "＋ 条件分岐" }).click();
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  await page.getByRole("button", { name: "＋ 待機" }).click();
+  const condition = '[data-node-kind="condition"]';
+  const edge = page.locator(".canvas .react-flow__edge");
+
+  await connectHandles(page, condition + ' .react-flow__handle.source[data-handleid="true"]', '[data-node-kind="navigate"] .react-flow__handle.target');
+  await expect(edge).toHaveCount(1);
+  await connectHandles(page, condition + ' .react-flow__handle.source[data-handleid="false"]', '[data-node-kind="wait"] .react-flow__handle.target');
+  await expect(edge).toHaveCount(2);
+
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  await expect(edge).toHaveCount(1);
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  await expect(edge).toHaveCount(0);
+  await page.getByRole("button", { name: "↷ やり直す" }).click();
+  await expect(edge).toHaveCount(1);
+  await page.getByRole("button", { name: "↷ やり直す" }).click();
+  await expect(edge).toHaveCount(2);
+});
