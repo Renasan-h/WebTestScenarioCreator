@@ -4,6 +4,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
 import { exportPlaywrightTest } from "../packages/engine/src/export";
+import { exportSeleniumTest } from "../packages/engine/src/export-selenium";
 import type { RecordedAction } from "../packages/playwright-adapter/src/record";
 import { appendRecordedAction } from "../packages/playwright-adapter/src/record-graph";
 import { listen } from "@tauri-apps/api/event";
@@ -78,6 +79,7 @@ function Editor() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
   const [selected, setSelected] = useState<string | null>(null);
   const [path, setPath] = useState<string | null>(null);
+  const [exportTarget, setExportTarget] = useState<"playwright" | "selenium">("playwright");
   const [logs, setLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [stopping, setStopping] = useState(false);
@@ -322,11 +324,13 @@ function Editor() {
   }
   async function exportTest() {
     try {
-      const code = exportPlaywrightTest(snapshot());
-      const p = await save({ defaultPath: scenario.metadata.name + ".spec.ts", filters: [{ name: "TypeScript", extensions: ["ts"] }] });
+      const isSelenium = exportTarget === "selenium";
+      const code = isSelenium ? exportSeleniumTest(snapshot()) : exportPlaywrightTest(snapshot());
+      const extension = isSelenium ? "js" : "ts";
+      const p = await save({ defaultPath: scenario.metadata.name + (isSelenium ? ".selenium.js" : ".spec.ts"), filters: [{ name: isSelenium ? "JavaScript" : "TypeScript", extensions: [extension] }] });
       if (!p) return;
       await writeTextFile(p, code);
-      setMessage("Playwrightコードを出力しました: " + p);
+      setMessage((isSelenium ? "Selenium" : "Playwright") + "コードを出力しました: " + p);
     } catch (e) { setMessage("出力失敗: " + String(e)); }
   }
   function addRecorded(action: RecordedAction) {
@@ -447,7 +451,8 @@ function Editor() {
           <button disabled={busy} onClick={copySelected} title="Ctrl+C">コピー</button>
           <button disabled={busy || !clipboard.current.nodes.length} onClick={paste} title="Ctrl+V">貼り付け</button>
           <button disabled={busy} onClick={persist} title="Ctrl+S">保存</button>
-          <button disabled={busy} onClick={exportTest}>TS出力</button>
+          <label>コード出力先 <select aria-label="コード出力先" value={exportTarget} disabled={busy} onChange={e => setExportTarget(e.target.value as "playwright" | "selenium")}><option value="playwright">Playwright (TypeScript)</option><option value="selenium">Selenium (JavaScript)</option></select></label>
+          <button disabled={busy} onClick={exportTest}>コード出力</button>
           <button className="record-button" disabled={busy} onClick={startRecording}>{recording ? "記録中…" : "● 記録"}</button>
           <button className="run-button" disabled={busy} onClick={() => run(false)}>▶ 実行</button>
           <button disabled={busy} onClick={() => setScreen("debug")}>🐞 デバッグ</button>
