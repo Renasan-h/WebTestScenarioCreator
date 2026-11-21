@@ -11,11 +11,18 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコードコミット: `42dbb8da18af65f757a5085dc8e8213d7ab484fd` — 条件分岐YES・NO独立接続とUndo/RedoのGUI回帰テスト追加。
+
+
 - 本書更新直前の確認済みコードコミット: `b6c0a95b17349918a8a645c16f993ddbebb74b0f` — 接続済みノード削除時の接続線・Undo/Redo回帰テスト追加。
 - テストスクリプト追加: `4e0116c6643ec38a93c1f023cd63caf5299df250`。
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 2**: `tests/ui/editor.spec.ts` に条件分岐のYES・NOそれぞれを別ノードに接続し、2回のUndo・Redoで順に削除・復元されるGUI回帰テストを追加。
+- 既存の接続制限・履歴処理をコード上で確認。テスト・ビルドは未実行のため挙動は未検証。
+
 
 1. `tests/ui/editor.spec.ts` に、開始ノードとURL移動ノードを接続後、URL移動ノードの削除で接続線も消え、Undo/Redoで両者の状態が復元・再削除されるGUI回帰テストを追加。
 2. `src/App.tsx` の `removeObjects`、`deleteSelection`、`undo`、`redo`、接続線コンテキストメニューをコード調査。
