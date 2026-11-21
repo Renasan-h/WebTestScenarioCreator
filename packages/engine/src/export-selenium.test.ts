@@ -99,3 +99,24 @@ describe("generated Selenium JavaScript syntax", () => {
     expect(result.status, result.stderr).toBe(0);
   });
 });
+
+describe("Selenium fill semantics", () => {
+  it("clears the existing value before entering new text", () => {
+    const graph: Scenario = {
+      ...base,
+      nodes: base.nodes.map(node => node.type === "navigate"
+        ? { id: "fill", type: "fill", label: "Fill", position: node.position, config: { locator: { strategy: "css", value: "#name" }, value: "updated" } }
+        : node),
+      edges: base.edges.map(edge => ({
+        ...edge,
+        source: edge.source === "navigate" ? "fill" : edge.source,
+        target: edge.target === "navigate" ? "fill" : edge.target,
+      })),
+    };
+    const code = exportSeleniumTest(graph);
+    expect(code).toContain('driver.findElement(By.css("#name"))');
+    expect(code).toContain("await element.clear();");
+    expect(code).toContain('await element.sendKeys("updated");');
+    expect(code.indexOf("await element.clear()")).toBeLessThan(code.indexOf("await element.sendKeys"));
+  });
+});
