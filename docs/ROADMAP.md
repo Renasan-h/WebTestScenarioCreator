@@ -36,6 +36,14 @@
 5. Phaseの範囲・完了条件を変更したら本書と必要に応じて `docs/SPECIFICATION.md` を更新する。
 6. GitHub Actionsは手動実行のみ。追加課金やPublic化を伴う操作は事前承認が必要。
 
+## コード出力の拡張（Phase 3）
+
+- [x] Playwright TypeScript / Selenium JavaScript の出力先選択とコード生成を追加（未検証）
+- [ ] Selenium出力コードの単体テストと実ブラウザ検証
+- [ ] Selenium固有の実行設定（headless・Edge/Chromium等）を出力コードへ反映
+- [ ] 将来的にSelenium・Playwrightコードから `.pflow` へのインポートを検討（現時点で未実装）
+- [ ] `.pflow` を共通の中間形式として相互変換する仕様を詳細化
+
 ## 次の具体的な作業
 
 **Phase 2-1**: 接続線の追加・削除・Undo/RedoのGUI回帰テストを追加済み（未実行）。実行検証が残る。
