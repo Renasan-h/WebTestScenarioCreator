@@ -28,7 +28,7 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 - 条件分岐はYES（true）とNO（false）の別出力を持つ。
 - `.pflow` の保存、コード出力先（Playwright TypeScript / Selenium JavaScript）の選択、操作記録、実行。
 - `.pflow` はフレームワーク非依存の共通形式とし、将来のSelenium⇔Playwright変換は `.pflow` の読込・出力を介して実現する方針。
-- Seleniumコード出力はJavaScriptの `selenium-webdriver` を使用。実行・操作記録は現時点ではPlaywrightベースであり、Selenium実行エンジンは未実装。
+- Seleniumコード出力はJavaScriptの `selenium-webdriver` を使用し、Edge/Chromeの選択・headless・timeout・viewportを出力コードへ反映。実行・操作記録は現時点ではPlaywrightベースであり、Selenium実行エンジンは未実装。
 - Ctrl+Sで保存。実行中は編集操作を制限。
 - ライト/ダークモード切替。
 
