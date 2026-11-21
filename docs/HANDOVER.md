@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `f67d883384928923e2f4f61918697675de891acb` — Selenium実行設定のロードマップ更新。
+- 実装: `cb1c8ea739f7956a771699ea32d4b1b5efec611d`、単体テスト: `8ff841f7f1cb4f137547cc1d4d419879e48c84c3`。
+
+
 - 本書更新直前の確認済みコードコミット: `57ee2d23aca72935604112e620b9d19210bc0e90` — Selenium出力単体テスト追加。
 - Selenium出力本体: `3755a39a41b9f90facc658111719f273b0334cbb`、UI切替: `daff3b41f39aa4989820801937be681769eb9a30`。
 
@@ -23,6 +27,11 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 3**: Seleniumコード生成にEdge/Chrome Optionsとheadless設定を追加。`settings.browser`と`settings.headless`を出力へ反映。
+- ブラウザ設定のVitestテスト2件を追加。仕様・ロードマップを更新。
+- **未検証**: `pnpm test:front`、`pnpm build`、生成したSeleniumコードの実行、Windows環境での確認。GitHub Actionsは起動していない。
+
 
 - **Phase 3（機能拡張）**: `.pflow` を共通形式としたPlaywright TypeScript / Selenium JavaScriptコード出力先選択を編集画面に追加。
 - `packages/engine/src/export-selenium.ts` にSelenium WebDriverコード生成を追加（URL移動・クリック・入力・待機・表示/文字列確認・条件分岐・スクリーンショット）。
@@ -61,7 +70,7 @@
 ## 残課題と次の作業
 
 1. **Phase 3**: `pnpm test:front` / `pnpm build` を実行し、Selenium出力の構文・型・生成結果を検証。生成JSをselenium-webdriver導入環境で実ブラウザ検証。
-2. **Phase 3**: Selenium出力へheadless等の実行設定を反映。現状はブラウザ選択とviewport、timeoutのみ反映。
+2. **Phase 3**: SeleniumのEdge/Chrome/headless出力は実装済・未検証。実ブラウザでの動作と生成コードの依存パッケージ解決を確認。
 3. **将来の変換**: `.pflow` を中間形式とする出力切替は実装。既存Selenium/Playwrightコードから `.pflow` を生成するインポート機能は未実装。
 
 
