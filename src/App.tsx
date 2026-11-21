@@ -172,7 +172,13 @@ function Editor() {
       targetHandle: connection.targetHandle ?? undefined,
     };
     setEdges(existing => addEdge(edge, existing));
-    setScenario(current => ({ ...current, edges: [...current.edges, edge] }));
+    setScenario(current => ({ ...current, edges: [...current.edges, {
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.sourceHandle ?? undefined,
+      targetHandle: edge.targetHandle ?? undefined,
+    }] }));
     setMessage("ノードを接続しました");
   }, [scenario, nodes, edges]);
   function removeObjects(nodeIds: string[], edgeIds: string[] = []) {
