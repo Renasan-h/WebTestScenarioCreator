@@ -12,6 +12,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `7faab01e696c090309d4e9b570656aad5e27666d` — テスト実行ルールを更新。
+- テストスクリプト追加コミット: `4e0116c6643ec38a93c1f023cd63caf5299df250`。
+
+
 - 本書更新直前の確認済みコミット: `f3f16bc12d62ff91a557a9ad744c5b38aff9dd48` — 接続線Undo/Redo後のノードID保持テスト追加。
 
 
@@ -31,6 +35,11 @@
 - 本書自身の更新コミットSHAは事前に確定できないため、GitHubのコミット履歴で確認する。
 
 ## 今回完了した作業
+
+- **Phase 5（テスト実行環境の整備）**: `package.json` に `test:front`（Vitest）、`test:rust`（cargo test）、`test:all`（両者の順次実行）を追加。従来の `test` と `test:e2e` は維持。
+- `docs/DEVELOPMENT_RULES.md` に各コマンドの用途を明記。
+- テスト・ビルドは未実行。Rustテストの実行にはローカルのRust/Cargo環境が必要。GitHub Actionsは起動していない。
+
 
 - **Phase 2-2補強**: `tests/ui/editor.spec.ts` に接続線をUndo/Redoした後、接続元・先ノードのIDが維持される回帰テストを追加。
 - **Phase 2-3調査**: `src/App.tsx` の `snapshot()`、`persist()`、`openScenarioAt()` 周辺を確認。保存はグラフ検証とTauriファイル操作を伴うため、GUIでの保存・再読込検証は未実施。
