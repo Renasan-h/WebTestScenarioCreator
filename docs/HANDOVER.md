@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- ユーザーのローカル `pnpm build` で `src/App.tsx:174` に TS2345 が発生（`Edge[]` と UUIDテンプレートリテラル型の不整合）。
+- 本書更新直前の確認済み修正コミット: `8773db21459c6bfd31c321ee1db64ef182e2ff76` — 接続線オブジェクトに `Edge` 型を明示。
+
+
 - 本書更新直前の確認済みコミット: `6939726bcfc21573fc80ec1622b81a00c3b6a3ec` — Selenium入力上書き仕様の追記。
 - 実装: `ec7b4f1595eb89b7a81af55b404347b8de59075f`、テスト: `71aeed2d4e6eb6917f8bdf51afcadd304a8d4b32`。
 
@@ -75,6 +79,9 @@
 
 ## テスト・ビルド実行結果
 
+- **ユーザー実行**: `pnpm build` は `src/App.tsx:174` の TS2345 で失敗。上記コミットで原因箇所を修正したが、修正後の再ビルドは未実施。
+
+
 - `pnpm test:front`: **未実行**。
 - `pnpm test:rust`: **未実行**。
 - `pnpm test:all`: **未実行**。
@@ -86,6 +93,9 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新 `develop` を取得して `pnpm build` を再実行し、TS2345の解消を確認。新しいエラーがあればログをもとに修正。
+
 
 - **優先**: Selenium出力の `clear` / `sendKeys` の実ブラウザ動作、生成コードのNode.js構文、`pnpm test:front` と `pnpm build` をローカルで検証。
 - SeleniumとPlaywrightの各ノードの意味差（ロケーター、可視判定、タイムアウト）を継続して調査・回帰テスト化。
