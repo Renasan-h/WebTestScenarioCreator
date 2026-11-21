@@ -2,102 +2,55 @@
 
 > 更新日: 2026-11-21
 > 対象ブランチ: `develop`
-> 本書は開発作業の区切りごとに更新する。最新のHEADはGitHubのdevelopブランチを確認する。
+> 最新HEADはGitHubのdevelopブランチで確認する。本書のコミット自身のSHAは事前記載しない。
 
 ## 現在のPhase
 
-- **Phase 2：フローエディタ（進行中）**。接続線の作成・削除・Undo/Redoの回帰テストが次の作業。
-- Phase 0/1/3/4は実装済み・未検証、Phase 5は品質確認中、Phase 6/7は未着手。
-- Phaseの定義・完了条件: [`docs/ROADMAP.md`](ROADMAP.md)。
+- **Phase 2：フローエディタ（進行中）**。接続・削除・Undo/Redoの回帰テストを拡充中。
+- Phase 5（品質確認）を並行して実施。その他の状態・完了条件は [ROADMAP.md](ROADMAP.md) を参照。
 
 ## 最新コミット情報
 
-- 本書更新直前の確認済みコミット: `7faab01e696c090309d4e9b570656aad5e27666d` — テスト実行ルールを更新。
-- テストスクリプト追加コミット: `4e0116c6643ec38a93c1f023cd63caf5299df250`。
-
-
-- 本書更新直前の確認済みコミット: `f3f16bc12d62ff91a557a9ad744c5b38aff9dd48` — 接続線Undo/Redo後のノードID保持テスト追加。
-
-
-- 今回のコード変更: `90eb1ab1ee42fd8c397d509647d13572054c83f7` — 重複接続拒否とUndo/Redo履歴維持のGUIテスト追加。
-
-
-- 本書更新直前の確認済みコミット: `3e2420101a9aa195356a67eb61f19dbee6146d02` — Phase 2-1進捗更新。
-- GUIテスト追加: `42add1a8fdb71db5c2e6dcfad57abb76b2caa2ae` — 接続線追加・削除のUndo/Redoテスト。
-
-
-- 本書更新直前の確認済みコミット: `eb2548c1387cf0256a821941d3bc9850012d681e` — Phase管理ルール追加。
-- ロードマップ追加: `225f1038f43ac6097dbe73cd0d507871a6be9d12`。
-
-- **本書更新直前の確認済みコミット**: `5acfe8bf0d77973bdce2eb6eb479f739e45a717c` — 複数ノード移動の回帰テスト追加。
-- 直近のコード変更: `e5e8a733e06c7f0a2db6252c12342719d32ea43e` — ドラッグ終了コールバックの型調整。
-- その前のコード変更: `03c3e552afbced19d3a19ca3892ea8a11914a07f` — ドラッグ終了時の複数ノード座標判定改善。
-- 本書自身の更新コミットSHAは事前に確定できないため、GitHubのコミット履歴で確認する。
+- 本書更新直前の確認済みコードコミット: `b6c0a95b17349918a8a645c16f993ddbebb74b0f` — 接続済みノード削除時の接続線・Undo/Redo回帰テスト追加。
+- テストスクリプト追加: `4e0116c6643ec38a93c1f023cd63caf5299df250`。
+- テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
 
-- **Phase 5（テスト実行環境の整備）**: `package.json` に `test:front`（Vitest）、`test:rust`（cargo test）、`test:all`（両者の順次実行）を追加。従来の `test` と `test:e2e` は維持。
-- `docs/DEVELOPMENT_RULES.md` に各コマンドの用途を明記。
-- テスト・ビルドは未実行。Rustテストの実行にはローカルのRust/Cargo環境が必要。GitHub Actionsは起動していない。
-
-
-- **Phase 2-2補強**: `tests/ui/editor.spec.ts` に接続線をUndo/Redoした後、接続元・先ノードのIDが維持される回帰テストを追加。
-- **Phase 2-3調査**: `src/App.tsx` の `snapshot()`、`persist()`、`openScenarioAt()` 周辺を確認。保存はグラフ検証とTauriファイル操作を伴うため、GUIでの保存・再読込検証は未実施。
-- ローカル環境にリポジトリのチェックアウトおよびpnpmがないためテスト・ビルド未実行。GitHub Actionsは起動していない。
-
-
-- **Phase 2-2（テスト拡充）**: 同一出力端子からの二重接続を拒否し、Undo/Redo履歴が維持されることを確認するGUI回帰テストを追加。
-- 実行環境を確認したが、このセッションにはGitHubリポジトリのローカルチェックアウト、pnpm、cargoがなく、GUIテスト・ビルドは実行できなかった。GitHub Actionsは許可なく起動しない。
-
-
-- **Phase 2-1**: `tests/ui/editor.spec.ts` に接続線を作成→Undo→Redo、削除→Undo→RedoするGUIテストを追加。テストは未実行。
-- `docs/ROADMAP.md` に実装済み・未検証の進捗を反映。
-
-
-- 2026-11-21: `docs/ROADMAP.md` を追加し、Phase 0～7の目的・進捗・完了条件を定義。
-- `docs/DEVELOPMENT_RULES.md` にPhase運用・報告ルールを追加。
-- 本書に現在のPhaseを記録。
-
-1. `src/App.tsx` のドラッグ終了判定を、React Flowがコールバックに渡すドラッグ対象ノード群の最新座標を使用する実装に変更。
-2. `tests/ui/editor.spec.ts` に、2ノードを複数選択してドラッグした後のUndo/Redoで双方の位置が復元される回帰テストを追加。
-3. 本書を最新の作業内容に合わせて更新し、以前の改行エスケープ混入と古い「最新コミット」記述を整理。
+1. `tests/ui/editor.spec.ts` に、開始ノードとURL移動ノードを接続後、URL移動ノードの削除で接続線も消え、Undo/Redoで両者の状態が復元・再削除されるGUI回帰テストを追加。
+2. `src/App.tsx` の `removeObjects`、`deleteSelection`、`undo`、`redo`、接続線コンテキストメニューをコード調査。
+3. 本書を現在のPhase・最新コードコミット・未検証事項に合わせて整理。
 
 ## 現在の実装状況
 
-- TOP・編集・デバッグの3画面。
-- JSON形式の `.pflow` 読込・保存、Zod検証。
-- React Flowノードの追加・削除・接続、複数選択、コピー・貼り付け、Undo/Redo。
-- Playwright実行・操作記録・コード出力、ステップデバッグ。
-- GitHub Actionsは `workflow_dispatch` のみ（手動実行）。
+- TOP・編集・デバッグ画面、JSON形式の `.pflow` 読込・保存。
+- React Flowのノード追加・削除・接続、複数選択、コピー・貼り付け、Undo/Redo。
+- Playwright実行・記録・コード出力・デバッグ機能。
+- `pnpm test:front`、`pnpm test:rust`、`pnpm test:all`、`pnpm test:e2e` の実行スクリプトを整備済み。
 
 ## テスト・ビルド実行結果
 
-- `pnpm test`: **未実行**。
+- `pnpm test:front`: **未実行**。
+- `pnpm test:rust`: **未実行**。
+- `pnpm test:all`: **未実行**。
+- `pnpm test:e2e`: **未実行**（追加した回帰テストも未検証）。
 - `pnpm build`: **未実行**。
-- `pnpm test:e2e`: **未実行**。追加した複数ノードドラッグのGUIテストも未検証。
 - `cargo check --manifest-path src-tauri/Cargo.toml`: **未実行**。
-- WindowsでのTauri動作確認: **未実行**。
-- GitHub Actions: **未実行**。無料枠・課金制限によりジョブ開始がブロックされる可能性がある。コード不具合と混同しない。
+- Windows Tauri動作確認: **未実行**。
+- この実行環境にはリポジトリのローカルチェックアウト、pnpm、cargoがなく、GitHub上の変更のみ実施。
+- GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
-## 残課題と既知のリスク
+## 残課題と次の作業
 
-- 複数選択・ドラッグ時のReact Flowイベント順序とUndo/Redoを実機で検証する必要がある。
-- 接続線の追加・削除・Undo/Redoと `scenario.edges` の同期を検証し、回帰テストを追加する。
-- GUIテストのセレクター・座標操作がWindowsで安定するか確認する。
-- Node.jsランナー・ブラウザ同梱とWindows単一ポータブルEXE化は未実装。
-- 実行していないテストを成功と報告しない。
-
-## 次に実施する作業
-
-1. **Phase 2-2**: Windowsローカル環境で接続線のUndo/Redo、二重接続拒否、複数ノード移動のGUIテストを実行し、失敗箇所を修正。
-2. 複数ノード移動のGUIテストをローカルWindows環境で実行可能な場合は検証し、必要な修正を実施。
-3. 課金を伴わないローカル環境で単体テスト・型チェック・ビルド・Rustチェックを実施し結果を記録。
-4. 主要機能が安定した後、ポータブルEXE化を検討。
+1. **Phase 2-2**: Windowsローカル環境で既存の接続線追加・削除・二重接続拒否・接続ノード削除・複数ノード移動のGUI回帰テストを実行し、失敗箇所を修正。
+2. **Phase 2-3**: `.pflow` 保存・再読込後のノード座標・接続線維持をテスト。Tauriファイルダイアログ・コマンドのモック方法も検討。
+3. **Phase 5**: `pnpm test:all`、`pnpm build`、GUIテスト、Rustチェックを課金のないローカル環境で実行。
+4. WindowsポータブルEXE化（Phase 6）は主要機能の安定化後に検討。
 
 ## 開発上の注意事項
 
-- 開発は `develop`。ユーザーの指示なく `main` へマージしない。
-- リポジトリはPrivateのまま維持する。
-- GitHub Actionsの自動実行、課金設定変更、手動CI起動は承認なしに行わない。
-- コミットメッセージは `docs/DEVELOPMENT_RULES.md` の形式に従う。
-- 仕様変更時は `docs/SPECIFICATION.md`、ルール変更時は `docs/DEVELOPMENT_RULES.md`、作業区切りでは必ず本書を更新する。
+- 通常の開発は `develop`、リポジトリはPrivateを維持。
+- `main`へのマージ、Public化、CI自動実行、手動CI起動、課金設定変更は無断で行わない。
+- コミットメッセージは `docs/DEVELOPMENT_RULES.md` の日本語形式を厳守。
+- 仕様変更時は `docs/SPECIFICATION.md`、Phase変更時は `docs/ROADMAP.md`、開発の区切りごとに本書を更新。
+- **テスト未実行を成功と報告しない。**
