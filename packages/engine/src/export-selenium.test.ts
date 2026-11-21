@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import type { Scenario } from "../../schema/src/scenario";
 import { exportSeleniumTest } from "./export-selenium";
@@ -73,5 +74,28 @@ describe("Selenium browser options", () => {
     expect(code).toContain("new chrome.Options()");
     expect(code).toContain(".setChromeOptions(options)");
     expect(code).not.toContain('options.addArguments("--headless=new")');
+  });
+});
+
+describe("generated Selenium JavaScript syntax", () => {
+  it("passes the Node.js ES Module syntax check", () => {
+    const code = exportSeleniumTest(base);
+    const result = spawnSync(process.execPath, ["--check", "--input-type=module"], {
+      input: code,
+      encoding: "utf8",
+    });
+    expect(result.status, result.stderr).toBe(0);
+  });
+
+  it("passes syntax checking with conditions and screenshots", () => {
+    const graph: Scenario = {
+      ...base,
+      nodes: base.nodes.map(node => node.type === "navigate" ? { ...node, screenshot: true } : node),
+    };
+    const result = spawnSync(process.execPath, ["--check", "--input-type=module"], {
+      input: exportSeleniumTest(graph),
+      encoding: "utf8",
+    });
+    expect(result.status, result.stderr).toBe(0);
   });
 });
