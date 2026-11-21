@@ -1,0 +1,84 @@
+import type { LocatorSpec, Scenario, ScenarioNode } from "../../schema/src/scenario";
+import { validateGraph } from "../../schema/src/scenario";
+
+function locator(spec: LocatorSpec): string {
+  switch (spec.strategy) {
+    case "css": return `By.css(${JSON.stringify(spec.value)})`;
+    case "testId": return `By.css(${JSON.stringify('[data-testid="' + spec.value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"]')})`;
+    case "text": return `By.xpath(${JSON.stringify('//*[contains(normalize-space(.), ' + xpathLiteral(spec.value) + ')]')})`;
+    case "role": {
+      const predicate = spec.name === undefined ? "" : ` and @aria-label=${xpathLiteral(spec.name)}`;
+      return `By.xpath(${JSON.stringify('//*[@role=' + xpathLiteral(spec.role) + predicate + ']')})`;
+    }
+  }
+}
+
+function xpathLiteral(value: string): string {
+  if (!value.includes("'")) return "'" + value + "'";
+  if (!value.includes('"')) return '"' + value + '"';
+  return "concat(" + value.split("'").map(part => "'" + part + "'").join(", \"'\", ") + ")";
+}
+
+function statement(node: ScenarioNode): string | null {
+  switch (node.type) {
+    case "start": case "end": case "condition": return null;
+    case "navigate": return `await driver.get(${JSON.stringify(node.config.url)});`;
+    case "click": return `await (await driver.findElement(${locator(node.config.locator)})).click();`;
+    case "fill": return `await (await driver.findElement(${locator(node.config.locator)})).sendKeys(${JSON.stringify(node.config.value)});`;
+    case "wait": return `await driver.sleep(${node.config.durationMs});`;
+    case "assertVisible": return `await driver.wait(until.elementIsVisible(await driver.findElement(${locator(node.config.locator)})), timeoutMs);`;
+    case "assertText": return `if (!(await (await driver.findElement(${locator(node.config.locator)})).getText()).includes(${JSON.stringify(node.config.expected)})) throw new Error("Text assertion failed");`;
+  }
+}
+
+export function exportSeleniumTest(s: Scenario): string {
+  const errors = validateGraph(s);
+  if (errors.length) throw new Error(errors.join("; "));
+  const byId = new Map(s.nodes.map(node => [node.id, node]));
+  const lines: string[] = [];
+  function render(id: string, indent: string, visited: Set<string>): void {
+    if (visited.has(id)) return;
+    const node = byId.get(id);
+    if (!node) throw new Error("Unknown node: " + id);
+    const nextVisited = new Set(visited);
+    nextVisited.add(id);
+    const line = statement(node);
+    if (line) lines.push(indent + line);
+    if (node.screenshot) {
+      const file = "screenshots/" + node.id.replace(/[^a-zA-Z0-9_-]/g, "_") + ".png";
+      lines.push(indent + `await fs.mkdir("screenshots", { recursive: true });`);
+      lines.push(indent + `await fs.writeFile(${JSON.stringify(file)}, await driver.takeScreenshot(), "base64");`);
+    }
+    if (node.type === "condition") {
+      const expression = node.config.check === "visible"
+        ? `await driver.findElements(${locator(node.config.locator)}).then(async els => els.length > 0 && await els[0].isDisplayed())`
+        : `await driver.findElements(${locator(node.config.locator)}).then(async els => els.length > 0 && (await els[0].getText()).includes(${JSON.stringify(node.config.expected ?? "")}))`;
+      lines.push(indent + `if (${expression}) {`);
+      const yes = s.edges.find(edge => edge.source === id && edge.sourceHandle === "true")!;
+      const no = s.edges.find(edge => edge.source === id && edge.sourceHandle === "false")!;
+      render(yes.target, indent + "  ", nextVisited);
+      lines.push(indent + "} else {");
+      render(no.target, indent + "  ", nextVisited);
+      lines.push(indent + "}");
+    } else {
+      const edge = s.edges.find(item => item.source === id);
+      if (edge) render(edge.target, indent, nextVisited);
+    }
+  }
+  render(s.nodes.find(node => node.type === "start")!.id, "    ", new Set());
+  const browser = s.settings.browser === "edge" ? "MicrosoftEdge" : "chrome";
+  return `// Generated from .pflow. Requires: npm install selenium-webdriver
+import { Builder, By, until } from "selenium-webdriver";
+import * as fs from "node:fs/promises";
+
+const timeoutMs = ${s.settings.timeoutMs};
+const driver = await new Builder().forBrowser(${JSON.stringify(browser)}).build();
+try {
+  await driver.manage().setTimeouts({ implicit: timeoutMs });
+  await driver.manage().window().setRect({ width: ${s.settings.viewport.width}, height: ${s.settings.viewport.height} });
+${lines.join("\n")}
+} finally {
+  await driver.quit();
+}
+`;
+}
