@@ -1,0 +1,57 @@
+import { describe, expect, it } from "vitest";
+import type { Scenario } from "../../schema/src/scenario";
+import { exportSeleniumTest } from "./export-selenium";
+
+const base: Scenario = {
+  schemaVersion: "1.0",
+  metadata: { id: "scenario", name: "Selenium export", createdAt: "2026-01-01", updatedAt: "2026-01-01" },
+  settings: { browser: "chromium", headless: false, timeoutMs: 10000, viewport: { width: 1280, height: 720 } },
+  variables: {},
+  nodes: [
+    { id: "start", type: "start", label: "Start", position: { x: 0, y: 0 }, config: {} },
+    { id: "navigate", type: "navigate", label: "Navigate", position: { x: 0, y: 100 }, config: { url: "https://example.com" } },
+    { id: "end", type: "end", label: "End", position: { x: 0, y: 200 }, config: {} },
+  ],
+  edges: [
+    { id: "e1", source: "start", target: "navigate" },
+    { id: "e2", source: "navigate", target: "end" },
+  ],
+};
+
+describe("exportSeleniumTest", () => {
+  it("generates a Selenium WebDriver script from a valid pflow graph", () => {
+    const code = exportSeleniumTest(base);
+    expect(code).toContain('from "selenium-webdriver"');
+    expect(code).toContain('forBrowser("chrome")');
+    expect(code).toContain('await driver.get("https://example.com")');
+    expect(code).toContain("await driver.quit()");
+  });
+
+  it("rejects invalid graphs before generating code", () => {
+    expect(() => exportSeleniumTest({ ...base, edges: [] })).toThrow();
+  });
+
+  it("exports the condition YES and NO paths", () => {
+    const graph: Scenario = {
+      ...base,
+      nodes: [
+        base.nodes[0],
+        { id: "condition", type: "condition", label: "Condition", position: { x: 0, y: 50 }, config: { locator: { strategy: "css", value: "#status" }, check: "visible" } },
+        { id: "yes", type: "wait", label: "Yes", position: { x: 0, y: 100 }, config: { durationMs: 100 } },
+        { id: "no", type: "wait", label: "No", position: { x: 0, y: 150 }, config: { durationMs: 200 } },
+        base.nodes[2],
+      ],
+      edges: [
+        { id: "a", source: "start", target: "condition" },
+        { id: "b", source: "condition", sourceHandle: "true", target: "yes" },
+        { id: "c", source: "condition", sourceHandle: "false", target: "no" },
+        { id: "d", source: "yes", target: "end" },
+        { id: "e", source: "no", target: "end" },
+      ],
+    };
+    const code = exportSeleniumTest(graph);
+    expect(code).toContain("await driver.sleep(100)");
+    expect(code).toContain("await driver.sleep(200)");
+    expect(code).toContain("} else {");
+  });
+});
