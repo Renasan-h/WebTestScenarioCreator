@@ -164,3 +164,23 @@ describe("Selenium visible assertion", () => {
     expect(result.status, result.stderr).toBe(0);
   });
 });
+
+describe("Selenium text locator", () => {
+  it("excludes ancestors with matching descendant elements", () => {
+    const graph: Scenario = {
+      ...base,
+      nodes: base.nodes.map(node => node.type === "navigate"
+        ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "text", value: "Submit" } } }
+        : node),
+      edges: base.edges.map(edge => ({
+        ...edge,
+        source: edge.source === "navigate" ? "click" : edge.source,
+        target: edge.target === "navigate" ? "click" : edge.target,
+      })),
+    };
+    const code = exportSeleniumTest(graph);
+    expect(code).toContain("and not(*[contains(normalize-space(.), 'Submit')])");
+    const result = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: code, encoding: "utf8" });
+    expect(result.status, result.stderr).toBe(0);
+  });
+});
