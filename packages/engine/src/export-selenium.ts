@@ -10,8 +10,18 @@ function locator(spec: LocatorSpec): string {
       return `By.xpath(${JSON.stringify("//*[" + match + " and not(*[" + match + "])]")})`;
     }
     case "role": {
-      const predicate = spec.name === undefined ? "" : ` and @aria-label=${xpathLiteral(spec.name)}`;
-      return `By.xpath(${JSON.stringify('//*[@role=' + xpathLiteral(spec.role) + predicate + ']')})`;
+      const explicit = "@role=" + xpathLiteral(spec.role);
+      const implicit: Record<string, string> = {
+        button: "self::button or (self::input and (@type='button' or @type='submit' or @type='reset'))",
+        link: "self::a[@href] or self::area[@href]",
+        textbox: "self::textarea or (self::input and (not(@type) or @type='text' or @type='email' or @type='search' or @type='tel' or @type='url'))",
+        checkbox: "self::input[@type='checkbox']",
+        radio: "self::input[@type='radio']",
+        heading: "self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6",
+      };
+      const rolePredicate = implicit[spec.role] ? "(" + explicit + " or " + implicit[spec.role] + ")" : explicit;
+      const namePredicate = spec.name === undefined ? "" : " and (@aria-label=" + xpathLiteral(spec.name) + " or normalize-space(.)=" + xpathLiteral(spec.name) + ")";
+      return `By.xpath(${JSON.stringify("//*[" + rolePredicate + namePredicate + "]")})`;
     }
   }
 }
