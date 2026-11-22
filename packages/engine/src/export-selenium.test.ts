@@ -126,7 +126,7 @@ describe("Selenium testId locator escaping", () => {
     const graph: Scenario = {
       ...base,
       nodes: base.nodes.map(node => node.type === "navigate"
-        ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "testId", value: 'a\\\\b"c' } }
+        ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "testId", value: 'a\\\\b"c' } } }
         : node),
       edges: base.edges.map(edge => ({
         ...edge,
