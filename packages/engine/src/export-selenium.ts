@@ -5,7 +5,10 @@ function locator(spec: LocatorSpec): string {
   switch (spec.strategy) {
     case "css": return `By.css(${JSON.stringify(spec.value)})`;
     case "testId": return `By.xpath(${JSON.stringify("//*[@data-testid=" + xpathLiteral(spec.value) + "]")})`;
-    case "text": return `By.xpath(${JSON.stringify('//*[contains(normalize-space(.), ' + xpathLiteral(spec.value) + ')]')})`;
+    case "text": {
+      const match = "contains(normalize-space(.), " + xpathLiteral(spec.value) + ")";
+      return `By.xpath(${JSON.stringify("//*[" + match + " and not(*[" + match + "])]")})`;
+    }
     case "role": {
       const predicate = spec.name === undefined ? "" : ` and @aria-label=${xpathLiteral(spec.name)}`;
       return `By.xpath(${JSON.stringify('//*[@role=' + xpathLiteral(spec.role) + predicate + ']')})`;
