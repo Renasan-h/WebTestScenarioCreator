@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `c65ebad82b56b285d3b056b1f64337ca6515cdb7` — Selenium表示確認仕様更新。
+- 実装: `660a575910de607343405a1f4cd25f8b78df10d3`、回帰テスト: `333831934df1efa7f272135a1a480e1f03afc64c`。
+
+
 - 本書更新直前の確認済みコミット: `44c76b2485a785dd927b3929a90c3db89685987d` — Selenium testIdロケーター仕様更新。
 - 実装修正: `10df29973f290db6090f7c6901d826eb6f5ebd61`、回帰テスト追加: `b9cefa51ca823533fac5ab8bc698ddfb8a868579`。
 - **ユーザー報告**: 前回の `pnpm build` のTS2345は解消。ユーザー環境での解決報告であり、本セッションでのビルド実行結果ではない。
@@ -48,6 +52,11 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 3**: Selenium表示確認の `findElement` 即時検索を `until.elementLocated` による出現待機と `until.elementIsVisible` による可視待機へ変更。
+- `packages/engine/src/export-selenium.test.ts` に表示確認の回帰テストを追加。
+- **未実行**: `pnpm test:front`、`pnpm build`、Selenium実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 3**: SeleniumのtestIdロケーターをCSS属性セレクターからXPathに変更し、引用符・バックスラッシュを含むIDに対応。
 - 生成コードの構文を確認する回帰テストを追加。仕様書を更新。
@@ -110,6 +119,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **Phase 3優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、表示確認の待機コードを検証。
+- SeleniumとPlaywrightの `text` / `role` ロケーターの意味差、条件分岐・アサーションの待機仕様を調査。
+
 
 - **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、testId特殊文字のテスト結果を確認。
 - Selenium/Playwright間のロケーター意味差（text、role、表示判定）を調査し、必要に応じて変換コードを改善。
