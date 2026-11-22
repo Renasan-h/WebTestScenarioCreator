@@ -11,6 +11,11 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `44c76b2485a785dd927b3929a90c3db89685987d` — Selenium testIdロケーター仕様更新。
+- 実装修正: `10df29973f290db6090f7c6901d826eb6f5ebd61`、回帰テスト追加: `b9cefa51ca823533fac5ab8bc698ddfb8a868579`。
+- **ユーザー報告**: 前回の `pnpm build` のTS2345は解消。ユーザー環境での解決報告であり、本セッションでのビルド実行結果ではない。
+
+
 - 本書更新直前の確認済み修正コミット: `c280e3e543a1be6654d0cd08cd46e676c00b5b03` — `Edge` のnullableハンドルをpflow用に正規化。
 - ユーザーの再ビルドで `src/App.tsx:175` のTS2345（`Edge.sourceHandle` の `null` がschema型に不適合）が判明。修正後の再ビルドは未実行。
 
@@ -43,6 +48,11 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 3**: SeleniumのtestIdロケーターをCSS属性セレクターからXPathに変更し、引用符・バックスラッシュを含むIDに対応。
+- 生成コードの構文を確認する回帰テストを追加。仕様書を更新。
+- **未実行**: `pnpm test:front`、`pnpm build`、Selenium実ブラウザ検証。GitHub Actionsは起動していない。
+
 
 - **Phase 3**: Seleniumコード出力の入力ノードを `sendKeys` 単独から `clear` → `sendKeys` に変更。Playwrightの `fill` と同様に既存値を上書きする。
 - `packages/engine/src/export-selenium.test.ts` に入力のクリア・入力順序の単体テストを追加。
@@ -100,6 +110,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、testId特殊文字のテスト結果を確認。
+- Selenium/Playwright間のロケーター意味差（text、role、表示判定）を調査し、必要に応じて変換コードを改善。
+
 
 - **最優先**: 最新 `develop` で `pnpm build` を再実行し、接続線のReact Flow型とpflowスキーマ型の整合性を確認。
 
