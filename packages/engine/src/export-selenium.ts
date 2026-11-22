@@ -30,7 +30,7 @@ function statement(node: ScenarioNode): string | null {
       await element.sendKeys(${JSON.stringify(node.config.value)});
     }`;
     case "wait": return `await driver.sleep(${node.config.durationMs});`;
-    case "assertVisible": return `await driver.wait(until.elementIsVisible(await driver.findElement(${locator(node.config.locator)})), timeoutMs);`;
+    case "assertVisible": return `await driver.wait(until.elementIsVisible(await driver.wait(until.elementLocated(${locator(node.config.locator)}), timeoutMs)), timeoutMs);`;
     case "assertText": return `if (!(await (await driver.findElement(${locator(node.config.locator)})).getText()).includes(${JSON.stringify(node.config.expected)})) throw new Error("Text assertion failed");`;
   }
 }
