@@ -202,7 +202,9 @@ describe("Selenium role locator", () => {
     const code = exportSeleniumTest(graph);
     expect(code).toContain("self::button");
     expect(code).toContain("@role='button'");
+    expect(code).toContain("not(@role)");
     expect(code).toContain("normalize-space(.)='Save'");
+    expect(code).toContain("@value='Save'");
     const result = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: code, encoding: "utf8" });
     expect(result.status, result.stderr).toBe(0);
   });
