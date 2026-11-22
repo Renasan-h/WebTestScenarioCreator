@@ -205,6 +205,9 @@ describe("Selenium role locator", () => {
     expect(code).toContain("not(@role)");
     expect(code).toContain("normalize-space(.)='Save'");
     expect(code).toContain("@value='Save'");
+    expect(code).toContain("@aria-labelledby=//*[@id and normalize-space(.)='Save']/@id");
+    expect(code).toContain("ancestor::label[normalize-space(.)='Save']");
+    expect(code).toContain("@id=//label[normalize-space(.)='Save']/@for");
     const result = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: code, encoding: "utf8" });
     expect(result.status, result.stderr).toBe(0);
   });
