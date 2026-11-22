@@ -72,6 +72,7 @@ cargo check --manifest-path src-tauri/Cargo.toml
 ## テスト実行用npm scripts
 
 - `pnpm test` / `pnpm test:front`: フロントエンドのVitest単体テスト（`vitest run`）。
+- Vitestの対象は `tests/*.test.ts` と `packages/**/*.test.ts`。エンジンのSelenium/Playwright出力テストも `pnpm test:front` に含める。
 - `pnpm test:rust`: Rustの単体・統合テスト（`cargo test --manifest-path src-tauri/Cargo.toml`）。Rustテスト追加時も同じコマンドで実行する。
 - `pnpm test:all`: フロントエンドとRustを順に実行。先のテストが失敗した場合は後続を実行しない。
 - `pnpm test:e2e`: Playwright GUIテスト。 `test:all` には含めない。
