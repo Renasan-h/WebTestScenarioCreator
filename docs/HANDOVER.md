@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `83757f03a8edeb1d38693a56fdfd4552c8f7fb16` — Selenium role仕様更新。
+- Selenium role実装: `07facee453604906ec80a2b80414d752d0f335e9`、回帰テスト: `421ccf743c5d16c5958add9d826450bb728b0d1e`。
+
+
 - 本書更新直前の確認済み修正コミット: `20b85ec42db0f695b8a01dbd88ea7fce68194f92` — Selenium testIdテストのエスケープ比較を修正。
 - **ユーザー実行**: `pnpm test:front` は8ファイル39テスト中38件成功・1件失敗。失敗は `packages/engine/src/export-selenium.test.ts:140` の期待値エスケープ不一致。修正後の再実行は未確認。
 
@@ -69,6 +73,11 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 3**: Selenium `role` ロケーターで代表的な暗黙ロール（button/link/textbox/checkbox/radio/heading）と `aria-label`・要素テキストの名前一致を追加。
+- `export-selenium.test.ts` にbutton/link/checkboxの回帰テストを追加。仕様書へ対応範囲と制限を記載。
+- **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 3 / Phase 5**: `vitest.config.ts` の対象を `tests/*.test.ts` と `packages/**/*.test.ts` に拡大。Seleniumコード出力のテストを `pnpm test:front` で収集可能にした。
 - `docs/DEVELOPMENT_RULES.md` にテスト収集対象を明記。
@@ -146,6 +155,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行。直前のtestId期待値修正と今回のroleテストを確認。
+- Selenium `role` の `aria-labelledby`、関連label、入力value等の名前計算、明示ロールとの優先順位、実ブラウザ互換性を検証・改善。
+
 
 - **最優先**: 最新developで `pnpm test:front` を再実行し、testIdエスケープ比較の修正を確認。続いて `pnpm build` を実行。
 
