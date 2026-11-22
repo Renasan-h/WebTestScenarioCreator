@@ -73,4 +73,5 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 - 明示的な `role` 属性に加え、`button`、`link`、`textbox`、`checkbox`、`radio`、`heading` の代表的なHTML暗黙ロールをXPathで検索する。
 - 明示的な `role` が存在する要素は暗黙ロール判定から除外し、明示ロールを優先する。
 - `name` 指定時は `aria-label`、要素の正規化テキスト、`input` の `value` または `title` と完全一致する要素を対象とする。
-- `aria-labelledby`、`label` 要素との関連付け、入力要素の関連ラベルなどを含むアクセシブルネーム計算や、Playwright `getByRole` との完全互換は未実装。
+- `aria-labelledby` の単一ID参照と、`input` の親 `label`・`for` 属性による関連付けを名前検索に使用する。
+- 複数IDを空白区切りで指定した `aria-labelledby`、複合アクセシブルネーム計算や、Playwright `getByRole` との完全互換は未実装。
