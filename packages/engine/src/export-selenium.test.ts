@@ -142,3 +142,25 @@ describe("Selenium testId locator escaping", () => {
     expect(result.status, result.stderr).toBe(0);
   });
 });
+
+describe("Selenium visible assertion", () => {
+  it("waits for the element to exist before waiting for visibility", () => {
+    const graph: Scenario = {
+      ...base,
+      nodes: base.nodes.map(node => node.type === "navigate"
+        ? { id: "visible", type: "assertVisible", label: "Visible", position: node.position, config: { locator: { strategy: "css", value: "#result" } } }
+        : node),
+      edges: base.edges.map(edge => ({
+        ...edge,
+        source: edge.source === "navigate" ? "visible" : edge.source,
+        target: edge.target === "navigate" ? "visible" : edge.target,
+      })),
+    };
+    const code = exportSeleniumTest(graph);
+    expect(code).toContain('until.elementLocated(By.css("#result"))');
+    expect(code).toContain("until.elementIsVisible(await driver.wait(");
+    expect(code).not.toContain('elementIsVisible(await driver.findElement(By.css("#result")))');
+    const result = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: code, encoding: "utf8" });
+    expect(result.status, result.stderr).toBe(0);
+  });
+});
