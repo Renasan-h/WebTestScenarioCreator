@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `8b18436977d813da3e674dd3e31b86b4ef4f3822` — Seleniumラベル検索仕様更新。
+- 実装: `fd95638719de35832ff82af055a1350e7db5a457`、回帰テスト: `def1bba2000d9cd48f11b960c7762e0d8dee6750`。
+
+
 - 本書更新直前の確認済みコミット: `e91341b48e95b2bf55debcc18c9f8fc8bec82fe0` — Seleniumロール検索仕様更新。
 - 実装: `dfd60f8600f2f77dab21cd4336f326e9323c42bc`、テスト: `0bfad5a9f3c4df1fb341cfbf75cb5e723d4669da`。
 
@@ -77,6 +81,11 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 3**: Selenium `role` の名前検索に `aria-labelledby` 単一ID参照、`input` の親 `label`、`label[for]` との関連付けを追加。
+- 回帰テストで生成XPathの条件を確認する検証項目を追加。仕様書に対応範囲と制限を記載。
+- **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 3**: Selenium `role` ロケーターで明示ロールを優先し、暗黙ロールは `@role` 不在の場合に限定。`input` の `value`・`title` を名前候補に追加。
 - 既存の回帰テストに明示ロール優先とinput値のXPath条件を追加。
@@ -164,6 +173,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、新規ラベル検索と既存testIdテストを検証。
+- `aria-labelledby` 複数IDの連結名、非input要素のlabel対応、実ブラウザXPathの動作確認を進める。
+
 
 - **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、前回のtestId修正と今回のrole検索変更を確認。
 - `aria-labelledby`・関連label等のアクセシブルネーム計算、実ブラウザでの暗黙ロール検索を検証。
