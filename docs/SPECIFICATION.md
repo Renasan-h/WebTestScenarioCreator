@@ -56,6 +56,7 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 - `packages/engine/`、`packages/playwright-adapter/`: コード出力・ブラウザ実行関連。
 - `packages/engine/src/export-selenium.ts`: Selenium WebDriver JavaScriptコード出力。
 - Seleniumの `testId` ロケーターはXPathの文字列リテラルを利用し、引用符・バックスラッシュを含む値を保持する。
+- Seleniumの表示確認ノードは要素のDOM出現を待機してから可視状態を待機する。
 
 ## 未確定・要検証
 
