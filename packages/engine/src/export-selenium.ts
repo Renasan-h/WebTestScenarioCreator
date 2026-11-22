@@ -19,8 +19,8 @@ function locator(spec: LocatorSpec): string {
         radio: "self::input[@type='radio']",
         heading: "self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6",
       };
-      const rolePredicate = implicit[spec.role] ? "(" + explicit + " or " + implicit[spec.role] + ")" : explicit;
-      const namePredicate = spec.name === undefined ? "" : " and (@aria-label=" + xpathLiteral(spec.name) + " or normalize-space(.)=" + xpathLiteral(spec.name) + ")";
+      const rolePredicate = implicit[spec.role] ? "(" + explicit + " or (not(@role) and (" + implicit[spec.role] + ")))" : explicit;
+      const namePredicate = spec.name === undefined ? "" : " and (@aria-label=" + xpathLiteral(spec.name) + " or normalize-space(.)=" + xpathLiteral(spec.name) + " or (self::input and (@value=" + xpathLiteral(spec.name) + " or @title=" + xpathLiteral(spec.name) + ")))";
       return `By.xpath(${JSON.stringify("//*[" + rolePredicate + namePredicate + "]")})`;
     }
   }
