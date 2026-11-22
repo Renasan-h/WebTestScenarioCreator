@@ -11,6 +11,11 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `917367eedbfc00176ff238d349da52a6b8995660` — Vitest対象ルール更新。
+- Vitest設定修正: `ec91c2f2afdb9f7cc3eed2877985d54bc013ae33` — `packages/**/*.test.ts` を対象に追加。
+- **ユーザー報告**: 直前のTS1005修正後のビルドエラーは解消。今回は未実行。
+
+
 - 本書更新直前の確認済み修正コミット: `6ae00664eab147c9401b662ff9578f2f4c2a4e4d` — Selenium testId回帰テストの閉じ波括弧不足を修正。
 - **ユーザー実行**: `pnpm test:front` は7ファイル28テスト成功。ただし `packages/engine/src/export-selenium.test.ts` は実行対象に含まれない。`pnpm build` は同テストファイル130行目のTS1005で失敗。修正後のビルドは未確認。
 
@@ -60,6 +65,11 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 3 / Phase 5**: `vitest.config.ts` の対象を `tests/*.test.ts` と `packages/**/*.test.ts` に拡大。Seleniumコード出力のテストを `pnpm test:front` で収集可能にした。
+- `docs/DEVELOPMENT_RULES.md` にテスト収集対象を明記。
+- **未実行**: `pnpm test:front`、`pnpm build`、Selenium実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 3**: Seleniumの `text` XPathで一致する子要素を持つ祖先を除外。`body` などの誤選択を抑制。
 - テキスト検索の生成コードに対する回帰テストを追加。Playwrightとの完全互換は未保証。
@@ -132,6 +142,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、パッケージ内テストの収集・実行結果を確認。失敗があれば修正。
+- Selenium `role` ロケーターの暗黙的ARIAロールとアクセシブルネーム対応を検討。
+
 
 - **最優先**: 最新developで `pnpm build` を再実行してTS1005の解消を確認。
 - `vitest` の対象設定を確認し、`packages/engine/src/export-selenium.test.ts` を含むSelenium出力テストが実際に走るよう整備する。
