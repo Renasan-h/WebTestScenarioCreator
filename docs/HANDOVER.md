@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `2a90e8426ddc9d7cc6217871cb1e9b1ac2e19d00` — Seleniumテキスト検索仕様更新。
+- 実装: `17698cd38646af8af7929ced757c9393aa5380fb`、テスト: `34980113a60b937efd84bf698f98f1fa9508082f`。
+
+
 - 本書更新直前の確認済みコミット: `c65ebad82b56b285d3b056b1f64337ca6515cdb7` — Selenium表示確認仕様更新。
 - 実装: `660a575910de607343405a1f4cd25f8b78df10d3`、回帰テスト: `333831934df1efa7f272135a1a480e1f03afc64c`。
 
@@ -52,6 +56,11 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 3**: Seleniumの `text` XPathで一致する子要素を持つ祖先を除外。`body` などの誤選択を抑制。
+- テキスト検索の生成コードに対する回帰テストを追加。Playwrightとの完全互換は未保証。
+- **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 3**: Selenium表示確認の `findElement` 即時検索を `until.elementLocated` による出現待機と `until.elementIsVisible` による可視待機へ変更。
 - `packages/engine/src/export-selenium.test.ts` に表示確認の回帰テストを追加。
@@ -119,6 +128,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **Phase 3優先**: `pnpm test:front` と `pnpm build` で追加テストを検証。`text` の入れ子要素・複数一致・引用符入り文字列を実ブラウザで確認。
+- `role` ロケーターは暗黙的ARIAロールとアクセシブルネームに未対応。Playwrightとの差を調査し段階的に改善。
+
 
 - **Phase 3優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、表示確認の待機コードを検証。
 - SeleniumとPlaywrightの `text` / `role` ロケーターの意味差、条件分岐・アサーションの待機仕様を調査。
