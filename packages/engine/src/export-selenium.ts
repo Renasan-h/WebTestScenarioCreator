@@ -4,7 +4,7 @@ import { validateGraph } from "../../schema/src/scenario";
 function locator(spec: LocatorSpec): string {
   switch (spec.strategy) {
     case "css": return `By.css(${JSON.stringify(spec.value)})`;
-    case "testId": return `By.css(${JSON.stringify('[data-testid="' + spec.value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"]')})`;
+    case "testId": return `By.xpath(${JSON.stringify("//*[@data-testid=" + xpathLiteral(spec.value) + "]")})`;
     case "text": return `By.xpath(${JSON.stringify('//*[contains(normalize-space(.), ' + xpathLiteral(spec.value) + ')]')})`;
     case "role": {
       const predicate = spec.name === undefined ? "" : ` and @aria-label=${xpathLiteral(spec.name)}`;
