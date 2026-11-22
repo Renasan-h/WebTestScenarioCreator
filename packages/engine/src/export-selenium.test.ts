@@ -120,3 +120,25 @@ describe("Selenium fill semantics", () => {
     expect(code.indexOf("await element.clear()")).toBeLessThan(code.indexOf("await element.sendKeys"));
   });
 });
+
+describe("Selenium testId locator escaping", () => {
+  it("preserves backslashes and double quotes in test IDs", () => {
+    const graph: Scenario = {
+      ...base,
+      nodes: base.nodes.map(node => node.type === "navigate"
+        ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "testId", value: 'a\\\\b"c' } }
+        : node),
+      edges: base.edges.map(edge => ({
+        ...edge,
+        source: edge.source === "navigate" ? "click" : edge.source,
+        target: edge.target === "navigate" ? "click" : edge.target,
+      })),
+    };
+    const code = exportSeleniumTest(graph);
+    expect(code).toContain("By.xpath(");
+    expect(code).toContain("@data-testid=");
+    expect(code).toContain("a\\\\b");
+    const result = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: code, encoding: "utf8" });
+    expect(result.status, result.stderr).toBe(0);
+  });
+});
