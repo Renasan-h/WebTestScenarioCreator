@@ -185,3 +185,42 @@ describe("Selenium text locator", () => {
     expect(result.status, result.stderr).toBe(0);
   });
 });
+
+describe("Selenium role locator", () => {
+  it("supports implicit button roles and a visible text name", () => {
+    const graph: Scenario = {
+      ...base,
+      nodes: base.nodes.map(node => node.type === "navigate"
+        ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "role", role: "button", name: "Save" } } }
+        : node),
+      edges: base.edges.map(edge => ({
+        ...edge,
+        source: edge.source === "navigate" ? "click" : edge.source,
+        target: edge.target === "navigate" ? "click" : edge.target,
+      })),
+    };
+    const code = exportSeleniumTest(graph);
+    expect(code).toContain("self::button");
+    expect(code).toContain("@role='button'");
+    expect(code).toContain("normalize-space(.)='Save'");
+    const result = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: code, encoding: "utf8" });
+    expect(result.status, result.stderr).toBe(0);
+  });
+
+  it("supports implicit link and checkbox roles", () => {
+    for (const [role, xpathPart] of [["link", "self::a[@href]"], ["checkbox", "self::input[@type='checkbox']"]] as const) {
+      const graph: Scenario = {
+        ...base,
+        nodes: base.nodes.map(node => node.type === "navigate"
+          ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "role", role } } }
+          : node),
+        edges: base.edges.map(edge => ({
+          ...edge,
+          source: edge.source === "navigate" ? "click" : edge.source,
+          target: edge.target === "navigate" ? "click" : edge.target,
+        })),
+      };
+      expect(exportSeleniumTest(graph)).toContain(xpathPart);
+    }
+  });
+});
