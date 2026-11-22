@@ -67,3 +67,9 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 - Node.jsランナー・ブラウザの同梱、ポータブル単一EXE化の設計と実装。
 
 仕様を変更した際は、コード変更と合わせて本書の該当箇所を更新する。
+
+## Selenium roleロケーターの対応範囲（2026-11-22）
+
+- 明示的な `role` 属性に加え、`button`、`link`、`textbox`、`checkbox`、`radio`、`heading` の代表的なHTML暗黙ロールをXPathで検索する。
+- `name` 指定時は `aria-label` または要素の正規化テキストと完全一致する要素を対象とする。
+- `aria-labelledby`、`label` 要素との関連付け、入力要素の `value` などを含むアクセシブルネーム計算や、Playwright `getByRole` との完全互換は未実装。
