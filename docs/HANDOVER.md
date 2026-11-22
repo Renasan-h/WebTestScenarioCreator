@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済み修正コミット: `6ae00664eab147c9401b662ff9578f2f4c2a4e4d` — Selenium testId回帰テストの閉じ波括弧不足を修正。
+- **ユーザー実行**: `pnpm test:front` は7ファイル28テスト成功。ただし `packages/engine/src/export-selenium.test.ts` は実行対象に含まれない。`pnpm build` は同テストファイル130行目のTS1005で失敗。修正後のビルドは未確認。
+
+
 - 本書更新直前の確認済みコミット: `2a90e8426ddc9d7cc6217871cb1e9b1ac2e19d00` — Seleniumテキスト検索仕様更新。
 - 実装: `17698cd38646af8af7929ced757c9393aa5380fb`、テスト: `34980113a60b937efd84bf698f98f1fa9508082f`。
 
@@ -128,6 +132,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm build` を再実行してTS1005の解消を確認。
+- `vitest` の対象設定を確認し、`packages/engine/src/export-selenium.test.ts` を含むSelenium出力テストが実際に走るよう整備する。
+
 
 - **Phase 3優先**: `pnpm test:front` と `pnpm build` で追加テストを検証。`text` の入れ子要素・複数一致・引用符入り文字列を実ブラウザで確認。
 - `role` ロケーターは暗黙的ARIAロールとアクセシブルネームに未対応。Playwrightとの差を調査し段階的に改善。
