@@ -123,10 +123,11 @@ describe("Selenium fill semantics", () => {
 
 describe("Selenium testId locator escaping", () => {
   it("preserves backslashes and double quotes in test IDs", () => {
+    const testId = 'a\\\\b"c';
     const graph: Scenario = {
       ...base,
       nodes: base.nodes.map(node => node.type === "navigate"
-        ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "testId", value: 'a\\\\b"c' } } }
+        ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "testId", value: testId } } }
         : node),
       edges: base.edges.map(edge => ({
         ...edge,
@@ -137,7 +138,7 @@ describe("Selenium testId locator escaping", () => {
     const code = exportSeleniumTest(graph);
     expect(code).toContain("By.xpath(");
     expect(code).toContain("@data-testid=");
-    expect(code).toContain("a\\\\b");
+    expect(code).toContain(JSON.stringify("//*[@data-testid=\'" + testId + "\']"));
     const result = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: code, encoding: "utf8" });
     expect(result.status, result.stderr).toBe(0);
   });
