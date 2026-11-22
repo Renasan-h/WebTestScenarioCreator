@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済み修正コミット: `20b85ec42db0f695b8a01dbd88ea7fce68194f92` — Selenium testIdテストのエスケープ比較を修正。
+- **ユーザー実行**: `pnpm test:front` は8ファイル39テスト中38件成功・1件失敗。失敗は `packages/engine/src/export-selenium.test.ts:140` の期待値エスケープ不一致。修正後の再実行は未確認。
+
+
 - 本書更新直前の確認済みコミット: `917367eedbfc00176ff238d349da52a6b8995660` — Vitest対象ルール更新。
 - Vitest設定修正: `ec91c2f2afdb9f7cc3eed2877985d54bc013ae33` — `packages/**/*.test.ts` を対象に追加。
 - **ユーザー報告**: 直前のTS1005修正後のビルドエラーは解消。今回は未実行。
@@ -142,6 +146,9 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` を再実行し、testIdエスケープ比較の修正を確認。続いて `pnpm build` を実行。
+
 
 - **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、パッケージ内テストの収集・実行結果を確認。失敗があれば修正。
 - Selenium `role` ロケーターの暗黙的ARIAロールとアクセシブルネーム対応を検討。
