@@ -242,6 +242,33 @@ describe("Selenium role locator", () => {
   });
 });
 
+
+  it("keeps named role XPath parentheses balanced for every supported implicit role", () => {
+    for (const role of ["button", "link", "textbox", "checkbox", "radio", "heading", "dialog"]) {
+      const graph: Scenario = {
+        ...base,
+        nodes: base.nodes.map(node => node.type === "navigate"
+          ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "role", role, name: "Save" } } }
+          : node),
+        edges: base.edges.map(edge => ({
+          ...edge,
+          source: edge.source === "navigate" ? "click" : edge.source,
+          target: edge.target === "navigate" ? "click" : edge.target,
+        })),
+      };
+      const code = exportSeleniumTest(graph);
+      const xpath = JSON.parse(code.match(/By\.xpath\(("(?:\\.|[^"\\])*")\)/)?.[1] ?? "null") as string | null;
+      expect(xpath).not.toBeNull();
+      let depth = 0;
+      for (const char of xpath ?? "") {
+        if (char === "(") depth++;
+        if (char === ")") depth--;
+        expect(depth, role).toBeGreaterThanOrEqual(0);
+      }
+      expect(depth, role).toBe(0);
+    }
+  });
+
 describe("Selenium role name escaping", () => {
   it("preserves names containing both quote characters", () => {
     const name = `Bob's "Save" button`;
