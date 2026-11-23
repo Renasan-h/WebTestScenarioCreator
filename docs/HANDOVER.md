@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `9e689b71c216dd231127c3fa14fe6228a3773d2a` — Seleniumのselect暗黙ロール仕様を記録。
+- 実装: `f293b745720a2dafef91e7a32f4ae6dbc78f1e0a`、テスト: `2a3a9eeae11695769d9eda954f77e079845006f8`。
+
+
 - 本書更新直前の確認済みコミット: `d911e1dde15c6383a21473678eb2063945554ce1` — Selenium検索入力の暗黙ARIAロール仕様を更新。
 - 実装: `6200cf5db479e7861d6739eb299a193fdba3951e`、テスト: `c6792417f1987c387b993cafbf7c308cd0952416`。
 
@@ -135,6 +139,10 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 5**: Seleniumで `select` の `combobox` / `listbox` 暗黙ロールXPathを追加。回帰テストと仕様書を更新。
+- **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 5**: Seleniumで `input type=search` の暗黙ロールを `textbox` から `searchbox` に修正。回帰テストと仕様書を更新。
 - **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
@@ -292,6 +300,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、selectのロール判定を検証。
+- `aria-labelledby` 複数ID連結名対応、Selenium実ブラウザ検証、Phase 2フローエディタ回帰テスト。
+
 
 - **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、searchbox対応を検証。
 - `aria-labelledby` 複数ID連結名対応、Selenium実ブラウザ検証、Phase 2フローエディタ回帰テスト。
