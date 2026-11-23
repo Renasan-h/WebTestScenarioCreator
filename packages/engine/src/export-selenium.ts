@@ -21,6 +21,7 @@ function locator(spec: LocatorSpec): string {
         checkbox: "self::input[@type='checkbox']",
         radio: "self::input[@type='radio']",
         heading: "self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6",
+        img: "self::img",
       };
       const rolePredicate = implicit[spec.role] ? "(" + explicit + " or (not(@role) and (" + implicit[spec.role] + ")))" : explicit;
       const name = spec.name === undefined ? undefined : xpathLiteral(spec.name);
@@ -29,6 +30,7 @@ function locator(spec: LocatorSpec): string {
         + "(@aria-labelledby and normalize-space(@aria-labelledby)=//*[@id and normalize-space(.)=" + name + "]/@id)"
         + " or (not(@aria-labelledby) and ("
         + "normalize-space(.)=" + name
+        + " or (self::img and @alt=" + name + ")"
         + " or (self::input and ((@type=\'image\' and @alt=" + name + ") or @value=" + name + " or @title=" + name
         + " or ancestor::label[normalize-space(.)=" + name + "]"
         + " or @id=//label[normalize-space(.)=" + name + "]/@for))"
