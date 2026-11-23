@@ -11,6 +11,9 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `d3b44f61c865ecdd4e85221aa7655e0fa619d883` — Seleniumの名前付きロールXPath括弧整合を複数ロールで検証する回帰テストを追加。
+
+
 - 本書更新直前の確認済みコミット: `bbee6270db850b6f3b863cc2a576abaf554ee208` — Selenium role名前条件の過剰な閉じ括弧を修正。
 - ユーザーの実行結果: `pnpm test:front` は42件中41件成功・1件失敗（`Selenium role locator > supports implicit button roles and a visible text name`、括弧深度 -1）。この失敗に対する修正は未再実行。
 
@@ -104,6 +107,10 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 5**: `button`、`link`、`textbox`、`checkbox`、`radio`、`heading` と明示的な `dialog` ロールの名前付きXPathについて、括弧の過不足を検証するテストを追加。
+- **未実行**: 追加テストを含む `pnpm test:front`、`pnpm build`、Selenium実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 5**: ユーザーのVitest失敗ログを解析。生成XPathの名前条件に閉じ括弧が2個過剰であることを特定し、末尾を7個から5個に修正。
 - **限定的な手動検証**: 同等の修正後XPath式をPython lxmlでコンパイルし構文受理を確認。リポジトリの自動テストではない。
@@ -225,6 +232,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行。前回のユーザー報告は42件中41件成功・1件失敗で、修正後の再実行結果は未受領。
+- XPathの実ブラウザ検証、`aria-labelledby` 複数IDの結合名対応、Phase 2フローエディタ回帰テスト拡充。
+
 
 - **最優先**: `bbee627` 以降のdevelopで `pnpm test:front` を再実行し、42件すべての結果を確認。続けて `pnpm build`。
 - Seleniumの実ブラウザXPath動作確認と `aria-labelledby` 複数ID連結名対応は未実装・未検証。
