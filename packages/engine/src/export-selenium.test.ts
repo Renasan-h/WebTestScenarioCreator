@@ -211,12 +211,22 @@ describe("Selenium role locator", () => {
     // XPath括弧の崩れを検出するため、生成文字列の括弧数を検証する。
     const xpath = JSON.parse(code.match(/By\.xpath\(("(?:\\.|[^"\\])*")\)/)?.[1] ?? "null") as string | null;
     expect(xpath).not.toBeNull();
+    // XPath文字列リテラル内の括弧は構文上の括弧ではない。
     let depth = 0;
+    let quote: "'" | '"' | null = null;
     for (const char of xpath ?? "") {
-      if (char === "(") depth++;
-      if (char === ")") depth--;
-      expect(depth).toBeGreaterThanOrEqual(0);
+      if (quote !== null) {
+        if (char === quote) quote = null;
+      } else if (char === "'" || char === '"') {
+        quote = char;
+      } else if (char === "(") {
+        depth++;
+      } else if (char === ")") {
+        depth--;
+        expect(depth).toBeGreaterThanOrEqual(0);
+      }
     }
+    expect(quote).toBeNull();
     expect(depth).toBe(0);
     expect(code).toContain("ancestor::label[normalize-space(.)='Save']");
     expect(code).toContain("@id=//label[normalize-space(.)='Save']/@for");
