@@ -26,7 +26,7 @@ function locator(spec: LocatorSpec): string {
         + "(@aria-labelledby and normalize-space(@aria-labelledby)=//*[@id and normalize-space(.)=" + name + "]/@id)"
         + " or (not(@aria-labelledby) and ("
         + "normalize-space(.)=" + name
-        + " or (self::input and (@value=" + name + " or @title=" + name
+        + " or (self::input and (@alt=" + name + " or @value=" + name + " or @title=" + name
         + " or ancestor::label[normalize-space(.)=" + name + "]"
         + " or @id=//label[normalize-space(.)=" + name + "]/@for))"
         + ")))))";
