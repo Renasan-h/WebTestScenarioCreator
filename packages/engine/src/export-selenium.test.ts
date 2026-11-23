@@ -259,7 +259,7 @@ describe("Selenium named role XPath validation", () => {
       const graph: Scenario = {
         ...base,
         nodes: base.nodes.map(node => node.type === "navigate"
-          ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "role", role, name: "Save" } } }
+          ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "role", role, name: "Save (draft)" } } }
           : node),
         edges: base.edges.map(edge => ({
           ...edge,
