@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `af954dfb32d8d7a39f8a223f60515f96e17a4294` — 画像入力のalt名前検索の仕様を明確化。
+- 実装: `f0ae70eb4850315662b29f9b7a69897d9e40ab0f`、テスト: `3945b3b67b21f7a18dbafd6835600af5afa7af18`。
+
+
 - 本書更新直前の確認済みコミット: `a21b9f5068ea1639ad73e53cdea687150627a579` — 画像送信ボタンのalt名前検索仕様を更新。
 - 実装: `d7109487acf285d4b715fa30c7e712032ce8bb5e`、テスト: `720b90dd5674fd5e44144075c1516eb187afc78b`。
 
@@ -127,6 +131,10 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 5**: Seleniumのロール名XPathにおける `@alt` 一致を `input type=image` に限定し、他の入力要素への誤一致を防止。回帰テスト・仕様書を更新。
+- **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 5**: Seleniumの名前付きロールXPathに `input` の `alt` 属性を追加し、画像送信ボタンの名前検索を改善。回帰テスト・仕様書を更新。
 - **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
@@ -276,6 +284,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、XPath名前条件を検証。
+- `aria-labelledby` 複数ID連結名対応、Selenium実ブラウザ検証、Phase 2フローエディタ回帰テスト。
+
 
 - **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行。画像送信ボタンのalt名前検索を実ブラウザで確認。
 - `aria-labelledby` 複数ID連結名対応、Phase 2フローエディタ回帰テスト拡充。
