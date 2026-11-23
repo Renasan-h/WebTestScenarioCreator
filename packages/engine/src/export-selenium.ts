@@ -29,7 +29,7 @@ function locator(spec: LocatorSpec): string {
         + " or (self::input and (@value=" + name + " or @title=" + name
         + " or ancestor::label[normalize-space(.)=" + name + "]"
         + " or @id=//label[normalize-space(.)=" + name + "]/@for))"
-        + ")))))";
+        + ")))";
       return `By.xpath(${JSON.stringify("//*[" + rolePredicate + namePredicate + "]")})`;
     }
   }
