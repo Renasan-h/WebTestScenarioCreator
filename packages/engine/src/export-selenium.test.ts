@@ -243,7 +243,8 @@ describe("Selenium role locator", () => {
 });
 
 
-  it("keeps named role XPath parentheses balanced for every supported implicit role", () => {
+describe("Selenium named role XPath validation", () => {
+  it("keeps named role XPath parentheses balanced for implicit and explicit roles", () => {
     for (const role of ["button", "link", "textbox", "checkbox", "radio", "heading", "dialog"]) {
       const graph: Scenario = {
         ...base,
@@ -268,6 +269,7 @@ describe("Selenium role locator", () => {
       expect(depth, role).toBe(0);
     }
   });
+});
 
 describe("Selenium role name escaping", () => {
   it("preserves names containing both quote characters", () => {
