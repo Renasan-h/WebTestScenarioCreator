@@ -208,6 +208,16 @@ describe("Selenium role locator", () => {
     expect(code).toContain("@aria-labelledby=//*[@id and normalize-space(.)='Save']/@id");
     expect(code).toContain("not(@aria-label)");
     expect(code).toContain("not(@aria-labelledby)");
+    // XPath括弧の崩れを検出するため、生成文字列の括弧数を検証する。
+    const xpath = JSON.parse(code.match(/By\\.xpath\\(("(?:\\\\.|[^"\\\\])*")\\)/)?.[1] ?? "null") as string | null;
+    expect(xpath).not.toBeNull();
+    let depth = 0;
+    for (const char of xpath ?? "") {
+      if (char === "(") depth++;
+      if (char === ")") depth--;
+      expect(depth).toBeGreaterThanOrEqual(0);
+    }
+    expect(depth).toBe(0);
     expect(code).toContain("ancestor::label[normalize-space(.)='Save']");
     expect(code).toContain("@id=//label[normalize-space(.)='Save']/@for");
     const result = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: code, encoding: "utf8" });
