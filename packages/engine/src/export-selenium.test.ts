@@ -205,7 +205,7 @@ describe("Selenium role locator", () => {
     expect(code).toContain("not(@role)");
     expect(code).toContain("normalize-space(.)='Save'");
     expect(code).toContain("@value='Save'");
-    expect(code).toContain("@aria-labelledby=//*[@id and normalize-space(.)='Save']/@id");
+    expect(code).toContain("normalize-space(@aria-labelledby)=//*[@id and normalize-space(.)='Save']/@id");
     expect(code).toContain("not(@aria-label)");
     expect(code).toContain("not(@aria-labelledby)");
     // XPath括弧の崩れを検出するため、生成文字列の括弧数を検証する。
