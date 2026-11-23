@@ -292,7 +292,7 @@ describe("Selenium named role XPath validation", () => {
 
 describe("Selenium role name escaping", () => {
   it("preserves names containing both quote characters", () => {
-    const name = `Bob's "Save" button`;
+    const name = `Bob's "Save (draft)" button`;
     const graph: Scenario = {
       ...base,
       nodes: base.nodes.map(node => node.type === "navigate"
@@ -307,7 +307,7 @@ describe("Selenium role name escaping", () => {
     const code = exportSeleniumTest(graph);
     const xpath = JSON.parse(code.match(/By\.xpath\(("(?:\\.|[^"\\])*")\)/)?.[1] ?? "null") as string | null;
     expect(xpath).not.toBeNull();
-    expect(xpath).toContain(`concat('Bob', "'", 's "Save" button')`);
+    expect(xpath).toContain(`concat('Bob', "'", 's "Save (draft)" button')`);
     const result = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: code, encoding: "utf8" });
     expect(result.status, result.stderr).toBe(0);
   });
