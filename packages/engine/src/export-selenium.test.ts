@@ -206,7 +206,7 @@ describe("Selenium role locator", () => {
     expect(code).toContain("not(@role)");
     expect(code).toContain("normalize-space(.)='Save'");
     expect(code).toContain("@value='Save'");
-    expect(code).toContain("@alt='Save'");
+    expect(code).toContain("(@type='image' and @alt='Save')");
     expect(code).toContain("normalize-space(@aria-labelledby)=//*[@id and normalize-space(.)='Save']/@id");
     expect(code).toContain("not(@aria-label)");
     expect(code).toContain("not(@aria-labelledby)");
