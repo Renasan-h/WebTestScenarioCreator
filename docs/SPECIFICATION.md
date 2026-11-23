@@ -76,3 +76,8 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 - `aria-labelledby` の前後空白を正規化した単一ID参照と、`input` の親 `label`・`for` 属性による関連付けを名前検索に使用する。
 - 名前検索は `aria-label` を優先し、未指定時のみ `aria-labelledby`、さらに未指定時のみテキストや入力要素の属性・ラベルを候補にする。
 - 複数IDを空白区切りで指定した `aria-labelledby`、複合アクセシブルネーム計算や、Playwright `getByRole` との完全互換は未実装。
+
+## Seleniumエクスポーターの暗黙ロール対応
+
+- `button` ロールはHTMLの `button` 要素に加え、`input` の `type=button`、`submit`、`reset`、`image` をXPathの候補に含める。
+- アクセシブル名の完全互換（特に複数IDの `aria-labelledby`）と実ブラウザ検証は未完了。
