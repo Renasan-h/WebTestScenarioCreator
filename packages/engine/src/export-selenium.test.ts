@@ -209,7 +209,7 @@ describe("Selenium role locator", () => {
     expect(code).toContain("not(@aria-label)");
     expect(code).toContain("not(@aria-labelledby)");
     // XPath括弧の崩れを検出するため、生成文字列の括弧数を検証する。
-    const xpath = JSON.parse(code.match(/By\\.xpath\\(("(?:\\\\.|[^"\\\\])*")\\)/)?.[1] ?? "null") as string | null;
+    const xpath = JSON.parse(code.match(/By\.xpath\(("(?:\\.|[^"\\])*")\)/)?.[1] ?? "null") as string | null;
     expect(xpath).not.toBeNull();
     let depth = 0;
     for (const char of xpath ?? "") {
