@@ -16,6 +16,8 @@ function locator(spec: LocatorSpec): string {
         link: "self::a[@href] or self::area[@href]",
         textbox: "self::textarea or (self::input and (not(@type) or @type='text' or @type='email' or @type='tel' or @type='url'))",
         searchbox: "self::input[@type='search']",
+        combobox: "self::select[not(@multiple) and (not(@size) or number(@size) <= 1)]",
+        listbox: "self::select[@multiple or (number(@size) > 1)]",
         checkbox: "self::input[@type='checkbox']",
         radio: "self::input[@type='radio']",
         heading: "self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6",
