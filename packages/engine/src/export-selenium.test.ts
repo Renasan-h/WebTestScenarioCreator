@@ -257,7 +257,7 @@ describe("Selenium role locator", () => {
 
 describe("Selenium named role XPath validation", () => {
   it("keeps named role XPath parentheses balanced for implicit and explicit roles", () => {
-    for (const role of ["button", "link", "textbox", "checkbox", "radio", "heading", "dialog"]) {
+    for (const role of ["button", "link", "textbox", "searchbox", "checkbox", "radio", "heading", "dialog"]) {
       const graph: Scenario = {
         ...base,
         nodes: base.nodes.map(node => node.type === "navigate"
@@ -289,6 +289,26 @@ describe("Selenium named role XPath validation", () => {
       expect(quote, role).toBeNull();
       expect(depth, role).toBe(0);
     }
+  });
+});
+
+describe("Selenium searchbox implicit role", () => {
+  it("maps search inputs to searchbox without treating them as textboxes", () => {
+    const makeGraph = (role: string): Scenario => ({
+      ...base,
+      nodes: base.nodes.map(node => node.type === "navigate"
+        ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "role", role } } }
+        : node),
+      edges: base.edges.map(edge => ({
+        ...edge,
+        source: edge.source === "navigate" ? "click" : edge.source,
+        target: edge.target === "navigate" ? "click" : edge.target,
+      })),
+    });
+    const searchbox = exportSeleniumTest(makeGraph("searchbox"));
+    const textbox = exportSeleniumTest(makeGraph("textbox"));
+    expect(searchbox).toContain("self::input[@type='search']");
+    expect(textbox).not.toContain("@type='search'");
   });
 });
 
