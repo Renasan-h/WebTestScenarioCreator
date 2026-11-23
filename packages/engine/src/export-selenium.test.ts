@@ -241,3 +241,26 @@ describe("Selenium role locator", () => {
     }
   });
 });
+
+describe("Selenium role name escaping", () => {
+  it("preserves names containing both quote characters", () => {
+    const name = `Bob's "Save" button`;
+    const graph: Scenario = {
+      ...base,
+      nodes: base.nodes.map(node => node.type === "navigate"
+        ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "role", role: "button", name } } }
+        : node),
+      edges: base.edges.map(edge => ({
+        ...edge,
+        source: edge.source === "navigate" ? "click" : edge.source,
+        target: edge.target === "navigate" ? "click" : edge.target,
+      })),
+    };
+    const code = exportSeleniumTest(graph);
+    const xpath = JSON.parse(code.match(/By\\.xpath\\(("(?:\\\\.|[^"\\\\])*")\\)/)?.[1] ?? "null") as string | null;
+    expect(xpath).not.toBeNull();
+    expect(xpath).toContain(`concat('Bob', "'", 's "Save" button')`);
+    const result = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: code, encoding: "utf8" });
+    expect(result.status, result.stderr).toBe(0);
+  });
+});
