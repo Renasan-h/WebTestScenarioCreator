@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `4c124857661111edc67562dcde9df5ce2dd652cf` — Selenium画像ロールの仕様を更新。
+- 実装: `626ec7a5213b43e7151c29bb8dce5a9c2e52e0f1`、テスト: `958f2dfe3b7620acf811db66d4b680025e302297`。
+
+
 - 本書更新直前の確認済みコミット: `9e689b71c216dd231127c3fa14fe6228a3773d2a` — Seleniumのselect暗黙ロール仕様を記録。
 - 実装: `f293b745720a2dafef91e7a32f4ae6dbc78f1e0a`、テスト: `2a3a9eeae11695769d9eda954f77e079845006f8`。
 
@@ -139,6 +143,10 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 5**: Seleniumで `img` 要素の暗黙 `img` ロールと `alt` 名前検索を追加。回帰テスト・仕様書を更新。
+- **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 5**: Seleniumで `select` の `combobox` / `listbox` 暗黙ロールXPathを追加。回帰テストと仕様書を更新。
 - **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
@@ -300,6 +308,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行。画像ロールのXPathと名前条件を検証。
+- `aria-labelledby` 複数ID連結名対応、Selenium実ブラウザ検証、Phase 2フローエディタ回帰テスト。
+
 
 - **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、selectのロール判定を検証。
 - `aria-labelledby` 複数ID連結名対応、Selenium実ブラウザ検証、Phase 2フローエディタ回帰テスト。
