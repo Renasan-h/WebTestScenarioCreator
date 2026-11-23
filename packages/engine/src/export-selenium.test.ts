@@ -257,7 +257,7 @@ describe("Selenium role name escaping", () => {
       })),
     };
     const code = exportSeleniumTest(graph);
-    const xpath = JSON.parse(code.match(/By\\.xpath\\(("(?:\\\\.|[^"\\\\])*")\\)/)?.[1] ?? "null") as string | null;
+    const xpath = JSON.parse(code.match(/By\.xpath\(("(?:\\.|[^"\\])*")\)/)?.[1] ?? "null") as string | null;
     expect(xpath).not.toBeNull();
     expect(xpath).toContain(`concat('Bob', "'", 's "Save" button')`);
     const result = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: code, encoding: "utf8" });
