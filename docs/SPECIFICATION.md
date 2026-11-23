@@ -80,5 +80,5 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 ## Seleniumエクスポーターの暗黙ロール対応
 
 - `button` ロールはHTMLの `button` 要素に加え、`input` の `type=button`、`submit`、`reset`、`image` をXPathの候補に含める。
-- 名前付き `button` ロール検索では、画像送信ボタンの `alt` 属性も候補に含める。
+- 名前付き `button` ロール検索では、画像送信ボタン（`input type=image`）の `alt` 属性も候補に含める。他の `input` 型では `alt` を名前一致に使用しない。
 - アクセシブル名の完全互換（特に複数IDの `aria-labelledby`）と実ブラウザ検証は未完了。
