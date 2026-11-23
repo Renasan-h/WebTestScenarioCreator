@@ -79,6 +79,8 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 
 ## Seleniumエクスポーターの暗黙ロール対応
 
+- `img` 要素は暗黙の `img` ロールとして扱い、名前付き検索では `alt` 属性を候補に含める。空の `alt` を持つ装飾画像のARIAロール完全互換は未対応。
+
 - `select` は `multiple` 属性がなく `size` が未指定または1以下なら `combobox`、`multiple` があるか `size` が1を超えるなら `listbox` として扱う。
 
 - `input type=search` は `searchbox` ロールとして扱い、`textbox` の暗黙ロール候補から除外する。
