@@ -23,7 +23,7 @@ function locator(spec: LocatorSpec): string {
       const name = spec.name === undefined ? undefined : xpathLiteral(spec.name);
       const namePredicate = name === undefined ? "" : " and (@aria-label=" + name
         + " or (not(@aria-label) and ("
-        + "(@aria-labelledby and @aria-labelledby=//*[@id and normalize-space(.)=" + name + "]/@id)"
+        + "(@aria-labelledby and normalize-space(@aria-labelledby)=//*[@id and normalize-space(.)=" + name + "]/@id)"
         + " or (not(@aria-labelledby) and ("
         + "normalize-space(.)=" + name
         + " or (self::input and (@value=" + name + " or @title=" + name
