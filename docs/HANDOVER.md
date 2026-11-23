@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `d251df50daa4e492067c9da8b1f1e58c481ccb03` — Selenium生成XPathの括弧整合テストを追加・修正。
+- XPathの括弧数を検討したが、エクスポーター本体の最終内容は変更前と同一（`87d626561f73c946cb3a162d9a19c300ec42acca`）。
+
+
 - 本書更新直前の確認済みコミット: `f76a750a8906fa405be78162491e805f15d76bf2` — Selenium名前優先順位の仕様更新。
 - 実装: `7d6a2f1c110d951e517cd5cd40d3f58f5ea41ac8`、XPath括弧修正: `dbd1694263de40e484d23a8691a6feba7fa05bfc`、テスト: `1902e0ef99ff7c3179efa16c71c72ebf39c9820d`。
 
@@ -85,6 +89,10 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 5**: Selenium `role` ロケーターの生成XPathから文字列を抽出し、括弧の過不足を検出する回帰アサーションを追加。
+- **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 3**: Selenium role名前検索のARIA優先順位を改善。`aria-label` がある場合はその値のみ、ない場合は `aria-labelledby`、両方ない場合にテキスト・input関連ラベルへフォールバック。
 - 生成XPathの条件を検証する回帰テストと仕様書を更新。
@@ -182,6 +190,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、新しい括弧整合テストを確認。括弧数のみではXPath構文の完全検証にならないため実ブラウザ検証も必要。
+- `aria-labelledby` の複数IDによる名前連結は未対応。ブラウザDOM上のアクセシブルネーム計算の設計を検討する。
+
 
 - **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行。ARIA優先順位XPathの実ブラウザ検証も必要。
 - `aria-labelledby` 複数ID連結名はXPath 1.0だけでは実装困難。Selenium実行時のJavaScriptによる名前解決等を設計・検証する。
