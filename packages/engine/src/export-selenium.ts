@@ -22,11 +22,14 @@ function locator(spec: LocatorSpec): string {
       const rolePredicate = implicit[spec.role] ? "(" + explicit + " or (not(@role) and (" + implicit[spec.role] + ")))" : explicit;
       const name = spec.name === undefined ? undefined : xpathLiteral(spec.name);
       const namePredicate = name === undefined ? "" : " and (@aria-label=" + name
-        + " or normalize-space(.)=" + name
-        + " or @aria-labelledby=//*[@id and normalize-space(.)=" + name + "]/@id"
+        + " or (not(@aria-label) and ("
+        + "(@aria-labelledby and @aria-labelledby=//*[@id and normalize-space(.)=" + name + "]/@id)"
+        + " or (not(@aria-labelledby) and ("
+        + "normalize-space(.)=" + name
         + " or (self::input and (@value=" + name + " or @title=" + name
         + " or ancestor::label[normalize-space(.)=" + name + "]"
-        + " or @id=//label[normalize-space(.)=" + name + "]/@for)))";
+        + " or @id=//label[normalize-space(.)=" + name + "]/@for))"
+        + "))))))";
       return `By.xpath(${JSON.stringify("//*[" + rolePredicate + namePredicate + "]")})`;
     }
   }
