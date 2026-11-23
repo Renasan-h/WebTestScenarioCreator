@@ -79,6 +79,8 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 
 ## Seleniumエクスポーターの暗黙ロール対応
 
+- `select` は `multiple` 属性がなく `size` が未指定または1以下なら `combobox`、`multiple` があるか `size` が1を超えるなら `listbox` として扱う。
+
 - `input type=search` は `searchbox` ロールとして扱い、`textbox` の暗黙ロール候補から除外する。
 
 - `button` ロールはHTMLの `button` 要素に加え、`input` の `type=button`、`submit`、`reset`、`image` をXPathの候補に含める。
