@@ -74,4 +74,5 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 - 明示的な `role` が存在する要素は暗黙ロール判定から除外し、明示ロールを優先する。
 - `name` 指定時は `aria-label`、要素の正規化テキスト、`input` の `value` または `title` と完全一致する要素を対象とする。
 - `aria-labelledby` の単一ID参照と、`input` の親 `label`・`for` 属性による関連付けを名前検索に使用する。
+- 名前検索は `aria-label` を優先し、未指定時のみ `aria-labelledby`、さらに未指定時のみテキストや入力要素の属性・ラベルを候補にする。
 - 複数IDを空白区切りで指定した `aria-labelledby`、複合アクセシブルネーム計算や、Playwright `getByRole` との完全互換は未実装。
