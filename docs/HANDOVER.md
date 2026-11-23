@@ -11,6 +11,9 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `68598bbb9c5fe560d9231d1c49aa7df7a21110f5` — XPath括弧検証テストで引用符内の括弧を除外。
+
+
 - 本書更新直前の確認済みコミット: `73823c12d4f065dac47a05d9be482c7208248d72` — Selenium各ロールXPath検証を独立したdescribeグループに整理。
 
 
@@ -110,6 +113,10 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 5**: SeleniumロールXPathの括弧数テスト2箇所を、XPath引用符内の括弧を構文として誤カウントしないよう改善。未閉鎖の引用符も検出する。
+- **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 5**: Selenium名前付きロールのXPath括弧検証テストを独立した `describe` に整理し、暗黙ロールと明示ロールの対象が分かる名称へ修正。実装本体の変更なし。
 - **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
@@ -239,6 +246,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行。XPath構文とARIA名前優先順位の実ブラウザ検証を行う。
+- `aria-labelledby` 複数ID連結名対応、Phase 2フローエディタの回帰テスト拡充。
+
 
 - **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行。直近のユーザー報告は42件中41件成功・1件失敗で、修正後の再実行結果は未受領。
 - XPath実ブラウザ検証、`aria-labelledby` 複数ID連結名対応、Phase 2フローエディタの回帰テスト拡充。
