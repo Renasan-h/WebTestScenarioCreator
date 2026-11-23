@@ -257,7 +257,7 @@ describe("Selenium role locator", () => {
 
 describe("Selenium named role XPath validation", () => {
   it("keeps named role XPath parentheses balanced for implicit and explicit roles", () => {
-    for (const role of ["button", "link", "textbox", "searchbox", "checkbox", "radio", "heading", "dialog"]) {
+    for (const role of ["button", "link", "textbox", "searchbox", "combobox", "listbox", "checkbox", "radio", "heading", "dialog"]) {
       const graph: Scenario = {
         ...base,
         nodes: base.nodes.map(node => node.type === "navigate"
@@ -309,6 +309,24 @@ describe("Selenium searchbox implicit role", () => {
     const textbox = exportSeleniumTest(makeGraph("textbox"));
     expect(searchbox).toContain("self::input[@type='search']");
     expect(textbox).not.toContain("@type='search'");
+  });
+});
+
+describe("Selenium select implicit roles", () => {
+  it("exports combobox and listbox predicates for select elements", () => {
+    const graphFor = (role: string): Scenario => ({
+      ...base,
+      nodes: base.nodes.map(node => node.type === "navigate"
+        ? { id: "click", type: "click", label: "Click", position: node.position, config: { locator: { strategy: "role", role } } }
+        : node),
+      edges: base.edges.map(edge => ({
+        ...edge,
+        source: edge.source === "navigate" ? "click" : edge.source,
+        target: edge.target === "navigate" ? "click" : edge.target,
+      })),
+    });
+    expect(exportSeleniumTest(graphFor("combobox"))).toContain("self::select[not(@multiple) and (not(@size) or number(@size) <= 1)]");
+    expect(exportSeleniumTest(graphFor("listbox"))).toContain("self::select[@multiple or (number(@size) > 1)]");
   });
 });
 
