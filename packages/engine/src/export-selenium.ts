@@ -12,7 +12,7 @@ function locator(spec: LocatorSpec): string {
     case "role": {
       const explicit = "@role=" + xpathLiteral(spec.role);
       const implicit: Record<string, string> = {
-        button: "self::button or (self::input and (@type='button' or @type='submit' or @type='reset'))",
+        button: "self::button or (self::input and (@type='button' or @type='submit' or @type='reset' or @type='image'))",
         link: "self::a[@href] or self::area[@href]",
         textbox: "self::textarea or (self::input and (not(@type) or @type='text' or @type='email' or @type='search' or @type='tel' or @type='url'))",
         checkbox: "self::input[@type='checkbox']",
