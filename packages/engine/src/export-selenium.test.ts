@@ -271,11 +271,20 @@ describe("Selenium named role XPath validation", () => {
       const xpath = JSON.parse(code.match(/By\.xpath\(("(?:\\.|[^"\\])*")\)/)?.[1] ?? "null") as string | null;
       expect(xpath).not.toBeNull();
       let depth = 0;
+      let quote: "'" | '"' | null = null;
       for (const char of xpath ?? "") {
-        if (char === "(") depth++;
-        if (char === ")") depth--;
-        expect(depth, role).toBeGreaterThanOrEqual(0);
+        if (quote !== null) {
+          if (char === quote) quote = null;
+        } else if (char === "'" || char === '"') {
+          quote = char;
+        } else if (char === "(") {
+          depth++;
+        } else if (char === ")") {
+          depth--;
+          expect(depth, role).toBeGreaterThanOrEqual(0);
+        }
       }
+      expect(quote, role).toBeNull();
       expect(depth, role).toBe(0);
     }
   });
