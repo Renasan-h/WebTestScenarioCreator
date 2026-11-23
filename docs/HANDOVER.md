@@ -1,6 +1,6 @@
 # 開発引き継ぎ（HANDOVER）
 
-> 更新日: 2026-11-22
+> 更新日: 2026-11-23
 > 対象ブランチ: `develop`
 > 最新HEADはGitHubのdevelopブランチで確認する。本書のコミット自身のSHAは事前記載しない。
 
@@ -10,6 +10,10 @@
 - Phase 5（品質確認）を並行して実施。その他の状態・完了条件は [ROADMAP.md](ROADMAP.md) を参照。
 
 ## 最新コミット情報
+
+- 本書更新直前の確認済みコミット: `f76a750a8906fa405be78162491e805f15d76bf2` — Selenium名前優先順位の仕様更新。
+- 実装: `7d6a2f1c110d951e517cd5cd40d3f58f5ea41ac8`、XPath括弧修正: `dbd1694263de40e484d23a8691a6feba7fa05bfc`、テスト: `1902e0ef99ff7c3179efa16c71c72ebf39c9820d`。
+
 
 - 本書更新直前の確認済みコミット: `8b18436977d813da3e674dd3e31b86b4ef4f3822` — Seleniumラベル検索仕様更新。
 - 実装: `fd95638719de35832ff82af055a1350e7db5a457`、回帰テスト: `def1bba2000d9cd48f11b960c7762e0d8dee6750`。
@@ -81,6 +85,11 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 3**: Selenium role名前検索のARIA優先順位を改善。`aria-label` がある場合はその値のみ、ない場合は `aria-labelledby`、両方ない場合にテキスト・input関連ラベルへフォールバック。
+- 生成XPathの条件を検証する回帰テストと仕様書を更新。
+- **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 3**: Selenium `role` の名前検索に `aria-labelledby` 単一ID参照、`input` の親 `label`、`label[for]` との関連付けを追加。
 - 回帰テストで生成XPathの条件を確認する検証項目を追加。仕様書に対応範囲と制限を記載。
@@ -173,6 +182,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行。ARIA優先順位XPathの実ブラウザ検証も必要。
+- `aria-labelledby` 複数ID連結名はXPath 1.0だけでは実装困難。Selenium実行時のJavaScriptによる名前解決等を設計・検証する。
+
 
 - **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、新規ラベル検索と既存testIdテストを検証。
 - `aria-labelledby` 複数IDの連結名、非input要素のlabel対応、実ブラウザXPathの動作確認を進める。
