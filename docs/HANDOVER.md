@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `457c257de74c71398b4320010864910a0ac18f6c` — Selenium role名前検索XPathの括弧不足を修正。
+- 修正途中コミット: `ace99b26fb80ca5b8d7dc3217e70bf344df8600a`。最終修正は上記コミット。
+
+
 - 本書更新直前の確認済みコミット: `0b698b52da589ca7cf8f5583bd172b385679c36d` — Seleniumラベル参照の空白正規化仕様を更新。
 - 実装: `08bed5b66155a9d3acbbc449588e41ecefb7a4e4`、テスト: `3160607542fcb772f4bd9bc3a08b179651149f92`。
 
@@ -96,6 +100,11 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 5**: Selenium role名前検索のARIA優先順位XPathに閉じ括弧不足があることを発見し修正。
+- **限定的な手動検証**: 同等のXPath式をPython lxmlで評価し、構文受理・サンプルHTMLで3要素一致を確認。GitHubのコードを直接実行した結果ではない。
+- **未実行**: `pnpm test:front`、`pnpm build`、Selenium実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 3**: `aria-labelledby` 単一ID参照を `normalize-space(@aria-labelledby)` で比較し、前後空白を許容。
 - 生成XPathの回帰アサーションと仕様書を更新。Python lxmlで対応するXPath構文を限定的に手動確認（アプリのテスト実行ではない）。
@@ -207,6 +216,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行。括弧整合テストの成功確認と実ブラウザXPath動作確認が必要。
+- `aria-labelledby` 複数ID連結名は未実装。実行時JavaScriptによる名前解決などの設計・検証を進める。
+
 
 - **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、Selenium生成XPathを実ブラウザで検証。
 - `aria-labelledby` の複数IDを結合した名前の対応は未実装。Selenium実行時JavaScript等の導入可否を検討する。
