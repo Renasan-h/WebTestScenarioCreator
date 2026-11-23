@@ -11,6 +11,9 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `513d26a43643ea17ab6d64052fec458d90661a01` — Seleniumロール名に両引用符と括弧が混在するエスケープ回帰テストを拡充。
+
+
 - 本書更新直前の確認済みコミット: `0ba35248646651769e7531ac7bd71b7f4ad1222d` — Seleniumロール名の括弧付き文字列回帰テストを追加。
 
 
@@ -116,6 +119,10 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 5**: Seleniumロール名エスケープテストの入力を `Bob's "Save (draft)" button` に変更し、単一引用符・二重引用符・括弧の混在を確認できるようにした。
+- **未実行**: `pnpm test:front`、`pnpm build`、実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 5**: XPath引用符を考慮した括弧検証を実際に通る括弧付きアクセシブル名 `Save (draft)` を7種類のロールで使用するよう変更。
 - **未実行**: `pnpm test:front`、`pnpm build`、Selenium実ブラウザ確認。GitHub Actionsは起動していない。
@@ -253,6 +260,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行。XPathの実ブラウザ検証を進める。
+- `aria-labelledby` 複数IDの連結名対応、Phase 2フローエディタ回帰テスト拡充。
+
 
 - **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、XPath括弧回帰テストを確認。
 - Selenium実ブラウザ検証、`aria-labelledby` 複数IDの連結名対応、Phase 2フローエディタ回帰テスト。
