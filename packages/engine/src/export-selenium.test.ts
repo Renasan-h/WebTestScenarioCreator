@@ -201,6 +201,7 @@ describe("Selenium role locator", () => {
     };
     const code = exportSeleniumTest(graph);
     expect(code).toContain("self::button");
+    expect(code).toContain("@type='image'");
     expect(code).toContain("@role='button'");
     expect(code).toContain("not(@role)");
     expect(code).toContain("normalize-space(.)='Save'");
