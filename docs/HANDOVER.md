@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- 本書更新直前の確認済みコミット: `0b698b52da589ca7cf8f5583bd172b385679c36d` — Seleniumラベル参照の空白正規化仕様を更新。
+- 実装: `08bed5b66155a9d3acbbc449588e41ecefb7a4e4`、テスト: `3160607542fcb772f4bd9bc3a08b179651149f92`。
+
+
 - 本書更新直前の確認済みコミット: `120edab4334d3142eb25927bf773ef4533b786d7` — Seleniumロール名の両引用符エスケープ回帰テストを追加・修正。
 
 
@@ -92,6 +96,11 @@
 - テストスクリプト運用ルール: `7faab01e696c090309d4e9b570656aad5e27666d`。
 
 ## 今回完了した作業
+
+- **Phase 3**: `aria-labelledby` 単一ID参照を `normalize-space(@aria-labelledby)` で比較し、前後空白を許容。
+- 生成XPathの回帰アサーションと仕様書を更新。Python lxmlで対応するXPath構文を限定的に手動確認（アプリのテスト実行ではない）。
+- **未実行**: `pnpm test:front`、`pnpm build`、Selenium実ブラウザ確認。GitHub Actionsは起動していない。
+
 
 - **Phase 5**: Selenium `role` 名前に単引用符・二重引用符が混在する場合のXPathリテラルと出力JavaScript構文を検証するテストを追加。
 - **限定的な手動検証**: サンプルのARIA優先順位XPath式をPython lxmlのXPathエンジンで評価し構文を確認。リポジトリの自動テストではなく、実ブラウザ確認でもない。
@@ -198,6 +207,10 @@
 - GitHub Actions: **未実行**。手動CI起動にはユーザーの承認が必要。
 
 ## 残課題と次の作業
+
+- **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行し、Selenium生成XPathを実ブラウザで検証。
+- `aria-labelledby` の複数IDを結合した名前の対応は未実装。Selenium実行時JavaScript等の導入可否を検討する。
+
 
 - **最優先**: 最新developで `pnpm test:front` と `pnpm build` を実行。生成XPathの実ブラウザ動作確認が必要。
 - `aria-labelledby` の複数ID連結名は未実装。XPath 1.0のみでの再現に制約があるため、実行時JavaScriptによる名前解決などを設計・検証する。
