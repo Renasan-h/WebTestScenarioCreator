@@ -92,6 +92,7 @@ function Editor() {
   const [undoStack, setUndoStack] = useState<Scenario[]>([]);
   const [redoStack, setRedoStack] = useState<Scenario[]>([]);
   const clipboard = useRef<{ nodes: ScenarioNode[]; edges: Scenario["edges"] }>({ nodes: [], edges: [] });
+  const [clipboardReady, setClipboardReady] = useState(false);
   const lastPaste = useRef(0);
   const historyLock = useRef(false);
   const dragStartPositions = useRef<Map<string, { x: number; y: number }> | null>(null);
@@ -111,7 +112,8 @@ function Editor() {
     if (busy || !undoStack.length) return;
     const previous = undoStack[undoStack.length - 1];
     setUndoStack(stack => stack.slice(0, -1));
-    setRedoStack(stack => [...stack, snapshot()]);
+    const current = snapshot();
+    setRedoStack(stack => [...stack, current]);
     restore(previous);
     setMessage("元に戻しました");
   }
@@ -119,7 +121,8 @@ function Editor() {
     if (busy || !redoStack.length) return;
     const next = redoStack[redoStack.length - 1];
     setRedoStack(stack => stack.slice(0, -1));
-    setUndoStack(stack => [...stack, snapshot()]);
+    const current = snapshot();
+    setUndoStack(stack => [...stack, current]);
     restore(next);
     setMessage("やり直しました");
   }
@@ -131,6 +134,7 @@ function Editor() {
     const ids = new Set(copied.map(node => node.id));
     clipboard.current = { nodes: structuredClone(copied), edges: structuredClone(snapshot().edges.filter(edge => ids.has(edge.source) && ids.has(edge.target))) };
     lastPaste.current = 0;
+    setClipboardReady(true);
     setMessage(copied.length + "個のノードと内部の接続をコピーしました");
   }
   function paste() {
@@ -455,7 +459,7 @@ function Editor() {
           <button disabled={busy || !undoStack.length} onClick={undo} title="Ctrl+Z">↶ 元に戻す</button>
           <button disabled={busy || !redoStack.length} onClick={redo} title="Ctrl+Y / Ctrl+Shift+Z">↷ やり直す</button>
           <button disabled={busy} onClick={copySelected} title="Ctrl+C">コピー</button>
-          <button disabled={busy || !clipboard.current.nodes.length} onClick={paste} title="Ctrl+V">貼り付け</button>
+          <button disabled={busy || !clipboardReady} onClick={paste} title="Ctrl+V">貼り付け</button>
           <button disabled={busy} onClick={persist} title="Ctrl+S">保存</button>
           <label>コード出力先 <select aria-label="コード出力先" value={exportTarget} disabled={busy} onChange={e => setExportTarget(e.target.value as "playwright" | "selenium")}><option value="playwright">Playwright (TypeScript)</option><option value="selenium">Selenium (JavaScript)</option></select></label>
           <button disabled={busy} onClick={exportTest}>コード出力</button>
