@@ -455,3 +455,25 @@ test("condition YES and NO outputs can connect independently and undo separately
   await page.getByRole("button", { name: "↷ やり直す" }).click();
   await expect(edge).toHaveCount(2);
 });
+
+
+test("protected start and end nodes survive Delete without consuming undo history", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  const start = page.locator('[data-node-kind="start"]');
+  const end = page.locator('[data-node-kind="end"]');
+  const navigate = page.locator('[data-node-kind="navigate"]');
+  await start.click();
+  await page.keyboard.press("Delete");
+  await expect(start).toHaveCount(1);
+  await end.click();
+  await page.keyboard.press("Backspace");
+  await expect(end).toHaveCount(1);
+  await expect(navigate).toHaveCount(1);
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  await expect(navigate).toHaveCount(0);
+  await expect(start).toHaveCount(1);
+  await expect(end).toHaveCount(1);
+  await page.getByRole("button", { name: "↷ やり直す" }).click();
+  await expect(navigate).toHaveCount(1);
+});
