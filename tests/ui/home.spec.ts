@@ -94,9 +94,9 @@ test("saving and reopening a branched scenario preserves graph and edited settin
     } });
   }, { filePath, fixture });
   await page.goto("/");
-  await page.getByRole("button", { name: "分岐確認", exact: true }).click();
+  await page.getByRole("complementary", { name: "シナリオ一覧" }).getByRole("button", { name: "分岐確認" }).click();
   await expect(page.getByRole("heading", { name: "分岐確認" })).toBeVisible();
-  await page.getByRole("button", { name: "✎ 編集", exact: true }).click();
+  await page.getByRole("button", { name: "✎ 編集する", exact: true }).click();
   await page.locator('[data-node-kind="condition"]').click();
   await page.getByLabel("比較文字列").fill("Completed");
   await page.getByLabel("スクリーンショットを撮影").check();
@@ -108,9 +108,9 @@ test("saving and reopening a branched scenario preserves graph and edited settin
     : node));
   expect(saved.edges).toEqual(fixture.edges);
   await page.reload();
-  await page.getByRole("button", { name: "分岐確認", exact: true }).click();
+  await page.getByRole("complementary", { name: "シナリオ一覧" }).getByRole("button", { name: "分岐確認" }).click();
   await expect(page.getByRole("heading", { name: "分岐確認" })).toBeVisible();
-  await page.getByRole("button", { name: "✎ 編集", exact: true }).click();
+  await page.getByRole("button", { name: "✎ 編集する", exact: true }).click();
   await expect(page.locator(".canvas .react-flow__edge")).toHaveCount(3);
   await page.locator('[data-node-kind="condition"]').click();
   await expect(page.getByLabel("比較文字列")).toHaveValue("Completed");
