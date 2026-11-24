@@ -290,10 +290,22 @@ function Editor() {
     const center = viewport
       ? flow.screenToFlowPosition({ x: viewport.left + viewport.width / 2, y: viewport.top + viewport.height / 2 })
       : { x: 300, y: 200 };
-    const offset = (nodes.length % 4) * 24;
-    const n = newNode(type, at ? { x: at.x - 86, y: at.y - 35 } : { x: center.x - 86 + offset, y: center.y - 40 + offset });
+    // Prefer visible, unoccupied positions instead of overlapping successive nodes.
+    const origin = { x: center.x - 86, y: center.y - 40 };
+    const candidates = [origin];
+    for (let ring = 1; ring <= 8; ring++) {
+      for (let y = -ring; y <= ring; y++) {
+        for (let x = -ring; x <= ring; x++) {
+          if (Math.max(Math.abs(x), Math.abs(y)) === ring) candidates.push({ x: origin.x + x * 220, y: origin.y + y * 140 });
+        }
+      }
+    }
+    const free = candidates.find(position => nodes.every(node =>
+      Math.abs(node.position.x - position.x) >= 220 || Math.abs(node.position.y - position.y) >= 140));
+    const n = newNode(type, at ? { x: at.x - 86, y: at.y - 35 } : free ?? origin);
     setScenario(s => ({ ...s, nodes: [...s.nodes, n] }));
-    setNodes(ns => [...ns, { id: n.id, position: n.position, data: { label: n.label, kind: n.type, detail: nodeDetail(n) }, type: "scenario" }]);
+    setNodes(ns => [...ns.map(node => ({ ...node, selected: false })), { id: n.id, position: n.position, data: { label: n.label, kind: n.type, detail: nodeDetail(n) }, type: "scenario", selected: true }]);
+    setEdges(es => es.map(edge => ({ ...edge, selected: false })));
     setSelected(n.id);
   }
   function editNode(update: ScenarioNode) {
