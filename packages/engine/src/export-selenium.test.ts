@@ -343,7 +343,7 @@ describe("Selenium image implicit role", () => {
         source: edge.source === "navigate" ? "click" : edge.source,
         target: edge.target === "navigate" ? "click" : edge.target,
       })),
-    });
+    };
     const code = exportSeleniumTest(graph);
     expect(code).toContain("self::img");
     expect(code).toContain("(self::img and @alt='Logo')");
