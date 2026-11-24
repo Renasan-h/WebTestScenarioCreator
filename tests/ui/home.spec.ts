@@ -55,5 +55,5 @@ test("scenario directory selection persists as a preference", async ({ page }) =
   await page.getByRole("button", { name: "注文フロー" }).click();
   await expect(page.getByRole("heading", { name: "注文フロー" })).toBeVisible();
   await expect(page.getByRole("button", { name: "▶ 実行" })).toBeEnabled();
-  await expect(page.getByText("C:\\scenario-files")).toBeVisible();
+  await expect(page.getByText("C:\\scenario-files", { exact: true })).toBeVisible();
 });
