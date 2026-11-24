@@ -300,8 +300,13 @@ function Editor() {
         }
       }
     }
-    const free = candidates.find(position => nodes.every(node =>
-      Math.abs(node.position.x - position.x) >= 220 || Math.abs(node.position.y - position.y) >= 140));
+    const free = candidates.find(position => {
+      const topLeft = flow.flowToScreenPosition(position);
+      const bottomRight = flow.flowToScreenPosition({ x: position.x + 200, y: position.y + 120 });
+      return (!viewport || (topLeft.x >= viewport.left + 12 && topLeft.y >= viewport.top + 12 &&
+        bottomRight.x <= viewport.right - 12 && bottomRight.y <= viewport.bottom - 12)) &&
+        nodes.every(node => Math.abs(node.position.x - position.x) >= 220 || Math.abs(node.position.y - position.y) >= 140);
+    });
     const n = newNode(type, at ? { x: at.x - 86, y: at.y - 35 } : free ?? origin);
     setScenario(s => ({ ...s, nodes: [...s.nodes, n] }));
     setNodes(ns => [...ns.map(node => ({ ...node, selected: false })), { id: n.id, position: n.position, data: { label: n.label, kind: n.type, detail: nodeDetail(n) }, type: "scenario", selected: true }]);
