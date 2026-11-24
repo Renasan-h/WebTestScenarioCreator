@@ -477,3 +477,40 @@ test("protected start and end nodes survive Delete without consuming undo histor
   await page.getByRole("button", { name: "↷ やり直す" }).click();
   await expect(navigate).toHaveCount(1);
 });
+
+
+test("group paste copies internal edges but not external edges and preserves undo history", async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole("button", { name: "＋ URL移動" }).click();
+  await page.getByRole("button", { name: "＋ 待機" }).click();
+  const navigate = page.locator('[data-node-kind="navigate"]');
+  const wait = page.locator('[data-node-kind="wait"]');
+  const edges = page.locator(".canvas .react-flow__edge");
+  await connectHandles(page, '[data-node-kind="start"] .react-flow__handle.source', '[data-node-kind="navigate"] .react-flow__handle.target');
+  await expect(edges).toHaveCount(1);
+  await connectHandles(page, '[data-node-kind="navigate"] .react-flow__handle.source', '[data-node-kind="wait"] .react-flow__handle.target');
+  await expect(edges).toHaveCount(2);
+  const edgeIds = () => edges.evaluateAll(items => items.map(item => item.getAttribute("data-id")).sort());
+  const originalIds = await edgeIds();
+  await navigate.click();
+  await wait.click({ modifiers: ["Shift"] });
+  await expect(page.locator(".canvas .react-flow__node.selected")).toHaveCount(2);
+  await page.getByRole("button", { name: "コピー", exact: true }).click();
+  await page.getByRole("button", { name: "貼り付け", exact: true }).click();
+  await expect(navigate).toHaveCount(2);
+  await expect(wait).toHaveCount(2);
+  await expect(edges).toHaveCount(3);
+  const pastedIds = await edgeIds();
+  expect(new Set(pastedIds).size).toBe(3);
+  expect(pastedIds).toEqual(expect.arrayContaining(originalIds));
+  await page.getByRole("button", { name: "↶ 元に戻す" }).click();
+  await expect(navigate).toHaveCount(1);
+  await expect(wait).toHaveCount(1);
+  await expect(edges).toHaveCount(2);
+  expect(await edgeIds()).toEqual(originalIds);
+  await page.getByRole("button", { name: "↷ やり直す" }).click();
+  await expect(navigate).toHaveCount(2);
+  await expect(wait).toHaveCount(2);
+  await expect(edges).toHaveCount(3);
+  expect(await edgeIds()).toEqual(pastedIds);
+});
