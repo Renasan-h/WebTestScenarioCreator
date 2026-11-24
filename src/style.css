@@ -182,7 +182,7 @@ main{min-height:0;overflow:hidden}
 .scenario-node__category{font-size:8px}
 .scenario-node__label{font-size:12px}
 .scenario-node__detail{margin-top:3px;font-size:9px}
-.scenario-node .react-flow__handle{z-index:5;width:19px;height:19px;transition:box-shadow .12s}
+.scenario-node .react-flow__handle{z-index:5;width:24px;height:24px;transition:box-shadow .12s}
 .scenario-node .react-flow__handle:before{content:"";position:absolute;inset:-5px;border-radius:50%}
 .scenario-node--condition .react-flow__handle-left,.scenario-node--condition .react-flow__handle-right{top:72%}
 .editor-layout .canvas-heading{top:12px;left:12px;padding:8px 11px}
