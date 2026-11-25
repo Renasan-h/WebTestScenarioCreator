@@ -11,6 +11,12 @@
 
 ## 最新コミット情報
 
+- `5695ec76bae6d897f4d12bac706783242062f4cf`: Selenium JS/TS表示確認を単一明示待機へ変更。暗黙待機0、matchesで再検索、finallyで復元。
+- `e0bcbad718a949ab7827d0909c25f85560d30aab`: Python/Javaも同様に統一。
+- `75ff0dc48dbb4cd9074273a6cce433abdfc8b133`: 既存表示確認テスト更新、模擬ドライバーによる成功失敗時の復元テスト追加。
+- `7b4aea3f5083d9434511f695da6f645d9cf529b4`: 仕様更新。テスト・ビルド未実行、CI未起動。実ブラウザの待機時間・Python/Java動作未検証。次はPlaywright Test全体タイムアウト対策と全形式の実行結果確認。Phase 3進行中。
+
+
 - `eb6214a8c6547f65d6bb22fddae82aaa94baf893`: Selenium JS/TS条件分岐をmatchesヘルパーに統一し、要素消失例外をNO、その他を再送出。Python/Javaと整合。
 - `0ea19c98f32065ccb3b3c8ad95789315bad2ca67`: 生成ヘルパーの模擬ドライバー回帰テスト追加。
 - `68e3f7582d5afac7f91594c1a35f9f868b8a8f2e`: 仕様更新。テスト・ビルド未実行、CI未起動。実ブラウザとTS型検証は未実施。次は表示確認の待機改善、Playwright全体タイムアウト、全形式実行結果確認。Phase 3進行中。
