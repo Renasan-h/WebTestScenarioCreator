@@ -63,6 +63,8 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 
 ## Playwrightコード出力
 
+- `test.use` に Chromium/Edge（msedgeチャネル）、headless、viewport、actionTimeout、navigationTimeoutを出力し、テスト本体でpage.setDefaultTimeoutを設定する。Playwright Test全体の制限時間や外部設定との競合は別途検証する。
+
 - クリック・入力の個別timeoutMsを出力コードへ反映する。文字列条件の取得失敗は実行アダプターと同様にNOとして扱う。
 
 ## 未確定・要検証
