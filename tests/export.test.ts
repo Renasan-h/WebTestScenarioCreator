@@ -26,6 +26,14 @@ describe("Playwright export", () => {
     expect(output).toContain('page.getByTestId("username").fill("a\\\"b")');
     expect(output.indexOf("page.goto")).toBeLessThan(output.indexOf("page.getByTestId"));
   });
+  it("disables the overall test timeout while preserving operation timeouts", () => {
+    const output = exportPlaywrightTest(scenario);
+    expect(output).toContain("test.describe.configure({ timeout: 0 });");
+    expect(output).toContain('"actionTimeout": 5000');
+    expect(output).toContain('"navigationTimeout": 5000');
+    expect(output).toContain("page.setDefaultTimeout(5000)");
+    expect(output.indexOf("test.describe.configure")).toBeLessThan(output.indexOf('test("example"'));
+  });
   it("rejects invalid graph", () => {
     expect(() => exportPlaywrightTest({ ...scenario, edges: [] })).toThrow();
   });
