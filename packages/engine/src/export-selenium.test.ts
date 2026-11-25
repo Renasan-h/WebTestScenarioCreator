@@ -490,3 +490,16 @@ describe("multi-language exports", () => {
     }
   });
 });
+
+describe("Selenium navigation timeout", () => {
+  it("sets the common page load timeout before navigation in all four languages", () => {
+    const scenario = { ...base, settings: { ...base.settings, timeoutMs: 4321 } };
+    for (const language of ["javascript", "typescript", "python", "java"] as const) {
+      const code = exportSeleniumLanguage(scenario, language);
+      const setting = language === "python" ? "driver.set_page_load_timeout(timeout)" : language === "java" ? "pageLoadTimeout(timeout)" : "setTimeouts({ pageLoad: timeoutMs })";
+      expect(code).toContain("4321");
+      expect(code.indexOf(setting)).toBeGreaterThanOrEqual(0);
+      expect(code.indexOf("driver.get(")).toBeGreaterThan(code.indexOf(setting));
+    }
+  });
+});
