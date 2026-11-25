@@ -16,8 +16,15 @@ export function exportSeleniumLanguage(s: Scenario, language: "typescript" | "py
   };
   function render(id: string, indent: string) {
     const n = s.nodes.find(node => node.id === id)!;
+    const timeout = (n.type === "click" || n.type === "fill") ? n.config.timeoutMs : undefined;
+    const originalIndent = indent;
     const emit = (line: string) => lines.push(indent + line + (py ? "" : ";"));
     const find = (l: LocatorSpec) => "driver." + (py ? "find_element(*" : "findElement(") + loc(l) + ")";
+    if (timeout !== undefined) {
+      emit(py ? "driver.implicitly_wait(" + timeout + " / 1000)" : "driver.manage().timeouts().implicitlyWait(Duration.ofMillis(" + timeout + "))");
+      lines.push(indent + (py ? "try:" : "try {"));
+      indent += "    ";
+    }
     switch (n.type) {
       case "navigate": emit("driver.get(" + q(n.config.url) + ")"); break;
       case "click": emit(find(n.config.locator) + ".click()"); break;
@@ -29,6 +36,14 @@ export function exportSeleniumLanguage(s: Scenario, language: "typescript" | "py
       case "wait": emit(py ? "time.sleep(" + n.config.durationMs + " / 1000)" : "Thread.sleep(" + n.config.durationMs + ")"); break;
       case "assertVisible": emit(py ? "WebDriverWait(driver, timeout).until(EC.visibility_of_element_located(" + loc(n.config.locator) + "))" : "new WebDriverWait(driver, timeout).until(ExpectedConditions.visibilityOfElementLocated(" + loc(n.config.locator) + "))"); break;
       case "assertText": emit(py ? "assert " + q(n.config.expected) + " in " + find(n.config.locator) + ".text" : "if (!" + find(n.config.locator) + ".getText().contains(" + q(n.config.expected) + ")) throw new AssertionError(\"Text assertion failed\")"); break;
+    }
+    if (timeout !== undefined) {
+      indent = originalIndent;
+      lines.push(indent + (py ? "finally:" : "} finally {"));
+      indent += "    ";
+      emit(py ? "driver.implicitly_wait(timeout)" : "driver.manage().timeouts().implicitlyWait(timeout)");
+      indent = originalIndent;
+      if (!py) lines.push(indent + "}");
     }
     if (n.screenshot) {
       const path = q("screenshots/" + n.id.replace(/[^a-zA-Z0-9_-]/g, "_") + ".png");
