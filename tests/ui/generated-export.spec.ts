@@ -1,5 +1,5 @@
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { delimiter, join, resolve } from "node:path";
 import { createRequire } from "node:module";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -109,6 +109,33 @@ for (const ready of [true, false]) {
           : exportSeleniumLanguage(standaloneScenario(), "python");
         await writeFile(file, code, "utf8");
         await promisify(execFile)(python, ["-E", "-X", "utf8", file], {
+          cwd: directory, timeout: 90000, maxBuffer: 4 * 1024 * 1024,
+        });
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    });
+  }
+  for (const framework of ["Playwright", "Selenium"] as const) {
+    test("standalone generated " + framework + " Java executes " + (ready ? "YES" : "NO"), async () => {
+      const prefix = framework.toUpperCase();
+      test.skip(process.env["RUN_" + prefix + "_JAVA_EXPORT_TESTS"] !== "1", "Requires explicit opt-in, JDK and browser dependencies");
+      test.setTimeout(180000);
+      const configured = process.env[prefix + "_JAVA_CLASSPATH"];
+      if (!configured) throw new Error(prefix + "_JAVA_CLASSPATH is required");
+      const classpath = configured.split(delimiter).filter(Boolean).map(entry => resolve(entry)).join(delimiter);
+      const directory = await mkdtemp(join(resolve("."), ".generated-java-"));
+      try {
+        const file = join(directory, "ScenarioTest.java");
+        const code = framework === "Playwright"
+          ? exportPlaywrightLanguage(standaloneScenario(), "java")
+          : exportSeleniumLanguage(standaloneScenario(), "java");
+        await writeFile(file, code, "utf8");
+        const run = promisify(execFile);
+        await run("javac", ["-encoding", "UTF-8", "-cp", classpath, "-d", directory, file], {
+          cwd: directory, timeout: 60000, maxBuffer: 4 * 1024 * 1024,
+        });
+        await run("java", ["-cp", directory + delimiter + classpath, "ScenarioTest"], {
           cwd: directory, timeout: 90000, maxBuffer: 4 * 1024 * 1024,
         });
       } finally {
