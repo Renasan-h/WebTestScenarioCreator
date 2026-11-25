@@ -144,3 +144,40 @@ for (const ready of [true, false]) {
     });
   }
 }
+
+
+test("standalone generated Playwright exceeds configured test timeout", async () => {
+  test.setTimeout(90000);
+  const scenario: Scenario = {
+    schemaVersion: "1.0",
+    metadata: { id: "long-export", name: "Long generated flow", createdAt: "", updatedAt: "" },
+    settings: { browser: "chromium", headless: true, timeoutMs: 5000, viewport: { width: 800, height: 600 } },
+    variables: {},
+    nodes: [
+      { id: "start", type: "start", label: "Start", position: { x: 0, y: 0 }, config: {} },
+      { id: "nav", type: "navigate", label: "Navigate", position: { x: 0, y: 100 }, config: { url: "data:text/html,%3Cp%20id%3D%22ready%22%3EReady%3C%2Fp%3E" } },
+      { id: "wait", type: "wait", label: "Wait", position: { x: 0, y: 200 }, config: { durationMs: 4000 } },
+      { id: "check", type: "assertText", label: "Check", position: { x: 0, y: 300 }, config: { locator: { strategy: "css", value: "#ready" }, expected: "Ready" } },
+      { id: "end", type: "end", label: "End", position: { x: 0, y: 400 }, config: {} },
+    ],
+    edges: [
+      { id: "a", source: "start", target: "nav" },
+      { id: "b", source: "nav", target: "wait" },
+      { id: "c", source: "wait", target: "check" },
+      { id: "d", source: "check", target: "end" },
+    ],
+  };
+  const directory = await mkdtemp(join(resolve("."), ".generated-export-"));
+  try {
+    await writeFile(join(directory, "generated.spec.ts"), exportPlaywrightTest(scenario), "utf8");
+    await writeFile(join(directory, "playwright.config.ts"), 'export default { testDir: ".", timeout: 2000, globalTimeout: 45000, workers: 1, reporter: "json", retries: 0 };', "utf8");
+    const cli = createRequire(import.meta.url).resolve("@playwright/test/cli");
+    const { stdout } = await promisify(execFile)(process.execPath, [cli, "test", "--config", join(directory, "playwright.config.ts")], { cwd: directory, timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
+    const report = JSON.parse(stdout);
+    expect(report.stats.expected).toBe(1);
+    expect(report.stats.unexpected).toBe(0);
+    expect(report.stats.skipped).toBe(0);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
