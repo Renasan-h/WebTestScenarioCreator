@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { test, expect } from "@playwright/test";
+import { exportPlaywrightLanguage } from "../../packages/engine/src/export-languages";
 import { exportPlaywrightTest } from "../../packages/engine/src/export";
 import { exportSeleniumLanguage } from "../../packages/engine/src/export-selenium-languages";
 import type { Scenario } from "../../packages/schema/src/scenario";
@@ -87,6 +88,27 @@ for (const ready of [true, false]) {
           ? ["--import", createRequire(import.meta.url).resolve("tsx"), file]
           : [file];
         await promisify(execFile)(process.execPath, args, {
+          cwd: directory, timeout: 90000, maxBuffer: 4 * 1024 * 1024,
+        });
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    });
+  }
+  for (const framework of ["Playwright", "Selenium"] as const) {
+    test("standalone generated " + framework + " Python executes " + (ready ? "YES" : "NO"), async () => {
+      const flag = framework === "Playwright" ? "RUN_PLAYWRIGHT_PYTHON_EXPORT_TESTS" : "RUN_SELENIUM_PYTHON_EXPORT_TESTS";
+      test.skip(process.env[flag] !== "1", "Requires explicit opt-in and the corresponding Python browser library");
+      test.setTimeout(120000);
+      const python = process.env.EXPORT_PYTHON_EXECUTABLE || (process.platform === "win32" ? "python" : "python3");
+      const directory = await mkdtemp(join(resolve("."), ".generated-python-"));
+      try {
+        const file = join(directory, "generated.py");
+        const code = framework === "Playwright"
+          ? exportPlaywrightLanguage(standaloneScenario(), "python")
+          : exportSeleniumLanguage(standaloneScenario(), "python");
+        await writeFile(file, code, "utf8");
+        await promisify(execFile)(python, ["-E", "-X", "utf8", file], {
           cwd: directory, timeout: 90000, maxBuffer: 4 * 1024 * 1024,
         });
       } finally {
