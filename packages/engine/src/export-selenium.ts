@@ -122,6 +122,7 @@ const options = new ${options}();
 ${headless}const driver = await new Builder().forBrowser(${JSON.stringify(browser)}).${builderOptions}(options).build();
 try {
   await driver.manage().setTimeouts({ implicit: timeoutMs });
+  await driver.manage().setTimeouts({ pageLoad: timeoutMs });
   await driver.manage().window().setRect({ width: ${s.settings.viewport.width}, height: ${s.settings.viewport.height} });
 ${lines.join("\n")}
 } finally {
