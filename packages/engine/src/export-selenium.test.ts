@@ -459,6 +459,26 @@ describe("multi-language exports", () => {
       expect(code.indexOf("screenshots/fill.png", cleanup)).toBeGreaterThan(code.indexOf(restore, cleanup));
     }
   });
+  it("uses individual click timeouts and leaves the common timeout unchanged when unspecified", () => {
+    const makeGraph = (timeoutMs?: number): Scenario => ({
+      ...base,
+      nodes: base.nodes.map(node => node.type === "navigate"
+        ? { ...node, type: "click", config: { locator: { strategy: "css", value: "#submit" }, timeoutMs } }
+        : node),
+    });
+    for (const language of ["typescript", "javascript", "python", "java"] as const) {
+      const override = language === "python" ? "driver.implicitly_wait(750 / 1000)" : language === "java" ? "implicitlyWait(Duration.ofMillis(750))" : "setTimeouts({ implicit: 750 })";
+      const restore = language === "python" ? "driver.implicitly_wait(timeout)" : language === "java" ? "implicitlyWait(timeout)" : "setTimeouts({ implicit: timeoutMs })";
+      const individual = exportSeleniumLanguage(makeGraph(750), language);
+      const common = exportSeleniumLanguage(makeGraph(), language);
+      expect(individual).toContain(override);
+      expect(individual.indexOf(".click()", individual.indexOf(override))).toBeGreaterThan(individual.indexOf(override));
+      expect(individual.lastIndexOf(restore)).toBeGreaterThan(individual.indexOf(".click()"));
+      expect(common).not.toContain(override);
+      expect(common.split(restore)).toHaveLength(2);
+      expect(common).toContain(".click()");
+    }
+  });
   it("retains the Selenium TypeScript and JavaScript export", () => {
     expect(exportSeleniumLanguage(graph, "typescript")).toContain(exportSeleniumTest(graph));
     expect(exportSeleniumLanguage(graph, "javascript")).toBe(exportSeleniumTest(graph));
