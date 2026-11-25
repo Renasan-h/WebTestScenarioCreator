@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- `1f622b900888ae158a747e2dc9b17e3c405ae0c9`: Selenium TypeScriptの生成ファイル独立実行YES/NOテスト2件追加。既存tsxをNode --importで読み込み、生成.tsをそのまま実行。JSと共通化し実際の言語選択エクスポーターを使用。RUN_SELENIUM_EXPORT_TESTS=1で両言語を有効化。通常全55件見込み（4件スキップ）。
+- テスト・ビルド未実行、CI未起動。tsxの解決と実行、実ブラウザ動作、型チェックは未検証。次は Selenium/Playwright PythonとJavaの独立実行検証。最新GUI結果は未受領。
+
+
 - `098ed41410d2d043b6e5accde0d6c6e784caaa5d`: Selenium JavaScript生成ファイルの独立実行YES/NOテスト2件追加。Playwrightと同じdata URLシナリオを共用。RUN_SELENIUM_EXPORT_TESTS=1 の場合のみ実行し、未指定時はスキップ。selenium-webdriverと互換Chrome/ChromeDriverを利用者が準備する。依存関係の自動追加なし。
 - PowerShell: `$env:RUN_SELENIUM_EXPORT_TESTS = '1'` の後 `pnpm test:e2e tests/ui/generated-export.spec.ts -g 'standalone generated Selenium'`。通常全53件見込み（うち2件スキップ）。Selenium Managerがドライバー取得のため通信する可能性あり。
 - 今回テスト・ビルド未実行、CI未起動。次はPlaywright独立実行とSelenium実行結果確認、Selenium TSおよびPython/Java独立実行検証。子プロセスのタイムアウト時のブラウザ残留は未検証。
