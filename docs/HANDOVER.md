@@ -11,6 +11,9 @@
 
 ## 最新コミット情報
 
+- `0b16d59e57313275c82533cbafdc9e98e9937151`: docs/EXPORT_TESTING.md に全7形式のWindows検証手順を追加。次は実行結果取得と失敗修正。テスト・ビルド未実行、CI未起動。Phase 3は進行中。
+
+
 - `99433a9289312609d26ffa65e720a62c3da29ce9`: Playwright/Selenium Java独立実行テスト4件追加。RUN_PLAYWRIGHT_JAVA_EXPORT_TESTS / RUN_SELENIUM_JAVA_EXPORT_TESTS を1に設定し、対応する PLAYWRIGHT_JAVA_CLASSPATH / SELENIUM_JAVA_CLASSPATH を指定。JDKと依存JARは利用者が準備。javac UTF-8コンパイル後にjavaでScenarioTestを実行。
 - `dd359d0c323b0586c9832c9c5f7ea3c9cebf0a35`: 前回のPython独立実行テスト4件追加を追記。RUN_PLAYWRIGHT_PYTHON_EXPORT_TESTS / RUN_SELENIUM_PYTHON_EXPORT_TESTS を1に設定、EXPORT_PYTHON_EXECUTABLEで実行ファイル指定。
 - 全7形式の独立実行テスト実装済み。全63件見込み（通常51件、任意12件）。実行・ビルド未実施、CI未起動。次は全形式の実行結果確認、失敗修正、Phase 3完了条件評価。Java依存解決・ブラウザ動作・タイムアウト時の残留プロセスは未検証。
