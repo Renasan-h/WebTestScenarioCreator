@@ -514,3 +514,23 @@ test("group paste copies internal edges but not external edges and preserves und
   await expect(edges).toHaveCount(3);
   expect(await edgeIds()).toEqual(pastedIds);
 });
+
+
+test("selects framework and export language independently", async ({ page }) => {
+  await openEditor(page);
+  const framework = page.getByLabel("コード出力先");
+  const language = page.getByLabel("出力言語");
+  await expect(framework).toHaveValue("playwright");
+  await expect(language).toHaveValue("typescript");
+  await language.selectOption("python");
+  await framework.selectOption("selenium");
+  await expect(language).toHaveValue("python");
+  await language.selectOption("java");
+  await framework.selectOption("playwright");
+  await expect(language).toHaveValue("java");
+  await framework.selectOption("selenium");
+  await language.selectOption("javascript");
+  await framework.selectOption("playwright");
+  await expect(language).toHaveValue("typescript");
+  await expect(language.locator('option[value="javascript"]')).toHaveCount(0);
+});
