@@ -11,6 +11,11 @@
 
 ## 最新コミット情報
 
+- `0485f13e34a03fc598e58c89a1015e88448b65b9`: executeScenarioに任意AbortSignal追加、ノード前・一時停止解除後・操作完了/例外時に中断判定。既存イベント互換のためrun.finished failedを通知。
+- `f723696aac91f0032406fc234f85ac003a1659ca`: sidecarのSTOPで一時停止解除より先にabort、ブラウザを閉じる。
+- `a0cf7529c8e43d26d9c4ccddb493607c8d592eaa`: 中断仕様更新。
+- Phase 3/4/5進行中。テスト・ビルド未実行、CI未起動。次は中断回帰テスト追加（既存テストの位置確認）、stdin EOF、ブラウザcloseの競合と例外処理、GUI停止状態、アプリ終了処理。操作が解決しない場合はRust強制停止に依存。記録モードは変更なし。
+
 - `2651b947855062e53e6c1af9099eeef8995ce1df`: Rust stop_runnerの回帰テスト4件追加。Node模擬ランナーの正常STOP、応答なし200ms猶予、stdinなし、終了済みを検証。終了コードと終了状態を確認し、残留時は直接終了を試みる。NodeがPATHに必要。実ブラウザ・孫プロセスは対象外。
 - Phase 3/4/5進行中。テスト・ビルド未実行、CI未起動。次はsidecarのSTOP時の実行中断とstdin EOF対応、アプリ終了時の後始末、強制停止後のUI状態確認。taskkill自体の時間上限は未対策。
 
