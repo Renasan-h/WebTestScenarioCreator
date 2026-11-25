@@ -74,7 +74,17 @@ export function exportSeleniumTest(s: Scenario): string {
     const nextVisited = new Set(visited);
     nextVisited.add(id);
     const line = statement(node);
-    if (line) lines.push(indent + line);
+    if (line) {
+      const timeout = (node.type === "click" || node.type === "fill") ? node.config.timeoutMs : undefined;
+      if (timeout !== undefined) {
+        lines.push(indent + `await driver.manage().setTimeouts({ implicit: ${timeout} });`);
+        lines.push(indent + "try {");
+        lines.push(indent + "  " + line);
+        lines.push(indent + "} finally {");
+        lines.push(indent + "  await driver.manage().setTimeouts({ implicit: timeoutMs });");
+        lines.push(indent + "}");
+      } else lines.push(indent + line);
+    }
     if (node.screenshot) {
       const file = "screenshots/" + node.id.replace(/[^a-zA-Z0-9_-]/g, "_") + ".png";
       lines.push(indent + `await fs.mkdir("screenshots", { recursive: true });`);
