@@ -57,7 +57,7 @@ function statement(node: ScenarioNode): string | null {
       await element.sendKeys(${JSON.stringify(node.config.value)});
     }`;
     case "wait": return `await driver.sleep(${node.config.durationMs});`;
-    case "assertVisible": return `await driver.wait(until.elementIsVisible(await driver.wait(until.elementLocated(${locator(node.config.locator)}), timeoutMs)), timeoutMs);`;
+    case "assertVisible": return `await waitVisible(driver, ${locator(node.config.locator)}, timeoutMs);`;
     case "assertText": return `if (!(await (await driver.findElement(${locator(node.config.locator)})).getText()).includes(${JSON.stringify(node.config.expected)})) throw new Error("Text assertion failed");`;
   }
 }
@@ -110,10 +110,19 @@ export function exportSeleniumTest(s: Scenario): string {
   const builderOptions = s.settings.browser === "edge" ? "setEdgeOptions" : "setChromeOptions";
   const headless = s.settings.headless ? "options.addArguments(\"--headless=new\");\n" : "";
   return `// Generated from .pflow. Requires: npm install selenium-webdriver
-import { Builder, By, until, error } from "selenium-webdriver";
+import { Builder, By, error } from "selenium-webdriver";
 import * as chrome from "selenium-webdriver/chrome.js";
 import * as edge from "selenium-webdriver/edge.js";
 import * as fs from "node:fs/promises";
+
+async function waitVisible(driver, locator, timeoutMs) {
+  await driver.manage().setTimeouts({ implicit: 0 });
+  try {
+    await driver.wait(async () => matches(driver, locator, null), timeoutMs);
+  } finally {
+    await driver.manage().setTimeouts({ implicit: timeoutMs });
+  }
+}
 
 async function matches(driver, locator, expected) {
   try {
