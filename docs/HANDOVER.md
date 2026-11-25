@@ -11,6 +11,13 @@
 
 ## 最新コミット情報
 
+- `63a0c88741a57c19e6b53bd401ce52362026afb1`: Seleniumロケーター共用。
+- `2d3da84d97c596f25b61a4aafdddc992737db350`: Selenium TypeScript/Python/Java生成追加。
+- `4328a4a4f2c9590ddd4baa789be960d93cd7c36e`: フレームワークと言語の独立選択。
+- `c35b4dafe6992a1979557a44a0bac8e3578267f4`: 選択UI回帰テスト追加（全46件見込み）。
+- テスト・ビルド未実行、CI未起動。次は全言語の生成コード単体テスト、構文・実ブラウザ検証、Selenium個別タイムアウト改善。TSは既存JS互換ESM、Python/Javaは直接実行形式。保存ダイアログの検証も残る。
+
+
 - `22be1f99c8e98b0affeb4ce1d80345cd0d0148ad`: Playwright Python/Java生成追加。
 - `3519e2eec28465a08c0116aaae90f958af1e368a`: GUI選択と拡張子追加。既存Selenium JavaScript維持。
 - 今回はPlaywrightの3言語を先行実装。Seleniumの3言語対応、生成コードの構文・実ブラウザ検証、回帰テスト追加は次の作業。テスト・ビルド未実行、CI未起動。
