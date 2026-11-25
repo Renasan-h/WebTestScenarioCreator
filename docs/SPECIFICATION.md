@@ -64,7 +64,7 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 ## 多言語コード出力
 
 - フレームワークと出力言語を独立選択する。Seleniumは既存JavaScriptも維持し、Playwrightへの切替時はJavaScriptからTypeScriptへ戻す。
-- Selenium TypeScriptは既存JavaScriptのESM互換コードを利用する。Python/Javaは既存XPathロケーターを共用し、直接実行形式で生成する。個別操作タイムアウトと実行互換性は未検証・改善対象。
+- Selenium TypeScriptは既存JavaScriptのESM互換コードを利用する。Python/Javaは既存XPathロケーターを共用し、直接実行形式で生成する。クリック・入力の個別timeoutMsは全Selenium出力言語で暗黙の要素検索待機に反映し、finallyで共通値へ復元する。未指定時は共通値を使用する。操作全体の厳密な時間制限ではなく、実ブラウザ互換性は未検証。
 
 ## Playwrightコード出力
 
