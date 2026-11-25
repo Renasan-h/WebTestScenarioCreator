@@ -10,22 +10,30 @@ export type ExecutionEvent =
   | { type: "run.finished"; runId: string; status: "completed" | "failed" };
 export type ExecuteAction = (node: ScenarioNode) => Promise<boolean | void>;
 
-export async function executeScenario(s: Scenario, action: ExecuteAction, emit: (e: ExecutionEvent) => void, runId = crypto.randomUUID(), beforeNode?: (node: ScenarioNode, notifyPaused: () => void) => Promise<void>): Promise<void> {
+export async function executeScenario(s: Scenario, action: ExecuteAction, emit: (e: ExecutionEvent) => void, runId = crypto.randomUUID(), beforeNode?: (node: ScenarioNode, notifyPaused: () => void) => Promise<void>, signal?: AbortSignal): Promise<void> {
   const problems = validateGraph(s);
   if (problems.length) throw new Error(problems.join("; "));
   const nodes = new Map(s.nodes.map(n => [n.id, n]));
   const next = new Map(s.edges.filter(e => e.sourceHandle !== "true" && e.sourceHandle !== "false").map(e => [e.source, e.target]));
   let id: string | undefined = s.nodes.find(n => n.type === "start")!.id;
   emit({ type: "run.started", runId });
+  const stopped = () => {
+    if (!signal?.aborted) return false;
+    emit({ type: "run.finished", runId, status: "failed" });
+    return true;
+  };
   while (id) {
+    if (stopped()) return;
     const node = nodes.get(id)!;
     if (beforeNode) {
       await beforeNode(node, () => emit({ type: "node.paused", runId, nodeId: node.id }));
     }
+    if (stopped()) return;
     const started = Date.now();
     emit({ type: "node.started", runId, nodeId: id });
     try {
       const result = await action(node);
+      if (stopped()) return;
       if (node.type === "condition") {
         const branch = result === true ? "true" : "false";
         const edge = s.edges.find(e => e.source === node.id && e.sourceHandle === branch);
@@ -34,6 +42,7 @@ export async function executeScenario(s: Scenario, action: ExecuteAction, emit: 
       }
       emit({ type: "node.completed", runId, nodeId: id, durationMs: Date.now() - started });
     } catch (error) {
+      if (stopped()) return;
       emit({ type: "node.failed", runId, nodeId: id, message: String(error) });
       emit({ type: "run.finished", runId, status: "failed" });
       throw error;
