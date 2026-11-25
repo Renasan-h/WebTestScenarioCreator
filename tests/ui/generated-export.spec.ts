@@ -1,3 +1,8 @@
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import { createRequire } from "node:module";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { test, expect } from "@playwright/test";
 import { exportPlaywrightTest } from "../../packages/engine/src/export";
 import type { Scenario } from "../../packages/schema/src/scenario";
@@ -41,5 +46,29 @@ for (const ready of [true, false]) {
     await new Function("page", "return (async () => {" + body + "})();")(page);
     await expect(page.getByTestId("name")).toHaveValue("日本語");
     await expect(page.locator("#status")).toHaveText((ready ? "Ready" : "Rejected") + ": 日本語");
+  });
+  test("standalone generated Playwright file executes " + (ready ? "YES" : "NO"), async () => {
+    test.setTimeout(90000);
+    const directory = await mkdtemp(join(resolve("."), ".generated-export-"));
+    try {
+      const html = '<input data-testid="name" value="old"><button onclick="document.querySelector(\'#status\').textContent='
+        + (ready ? "\'Ready: \'" : "\'Rejected: \'")
+        + '+document.querySelector(\'input\').value">Submit</button><div id="status"></div>';
+      const standalone: Scenario = {
+        ...scenario,
+        nodes: [...scenario.nodes, { id: "nav", type: "navigate", label: "Navigate", position: { x: 100, y: 0 }, config: { url: "data:text/html;charset=utf-8," + encodeURIComponent(html) } }],
+        edges: [...scenario.edges.map(edge => edge.source === "start" ? { ...edge, target: "nav" } : edge), { id: "nav-fill", source: "nav", target: "fill" }],
+      };
+      await writeFile(join(directory, "generated.spec.ts"), exportPlaywrightTest(standalone), "utf8");
+      await writeFile(join(directory, "playwright.config.ts"), 'export default { testDir: ".", workers: 1, reporter: "json", retries: 0 };', "utf8");
+      const cli = createRequire(import.meta.url).resolve("@playwright/test/cli");
+      const { stdout } = await promisify(execFile)(process.execPath, [cli, "test", "--config", join(directory, "playwright.config.ts")], { cwd: directory, timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
+      const report = JSON.parse(stdout);
+      expect(report.stats.expected).toBe(1);
+      expect(report.stats.unexpected).toBe(0);
+      expect(report.stats.skipped).toBe(0);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 }
