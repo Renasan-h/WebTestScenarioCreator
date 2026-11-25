@@ -5,7 +5,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { test, expect } from "@playwright/test";
 import { exportPlaywrightTest } from "../../packages/engine/src/export";
-import { exportSeleniumTest } from "../../packages/engine/src/export-selenium";
+import { exportSeleniumLanguage } from "../../packages/engine/src/export-selenium-languages";
 import type { Scenario } from "../../packages/schema/src/scenario";
 
 for (const ready of [true, false]) {
@@ -75,18 +75,23 @@ for (const ready of [true, false]) {
       await rm(directory, { recursive: true, force: true });
     }
   });
-  test("standalone generated Selenium JavaScript executes " + (ready ? "YES" : "NO"), async () => {
-    test.skip(process.env.RUN_SELENIUM_EXPORT_TESTS !== "1", "Requires explicit opt-in, selenium-webdriver and a compatible Chrome/ChromeDriver");
-    test.setTimeout(120000);
-    const directory = await mkdtemp(join(resolve("."), ".generated-selenium-"));
-    try {
-      const file = join(directory, "generated.selenium.mjs");
-      await writeFile(file, exportSeleniumTest(standaloneScenario()), "utf8");
-      await promisify(execFile)(process.execPath, [file], {
-        cwd: directory, timeout: 90000, maxBuffer: 4 * 1024 * 1024,
-      });
-    } finally {
-      await rm(directory, { recursive: true, force: true });
-    }
-  });
+  for (const language of ["javascript", "typescript"] as const) {
+    test("standalone generated Selenium " + language + " executes " + (ready ? "YES" : "NO"), async () => {
+      test.skip(process.env.RUN_SELENIUM_EXPORT_TESTS !== "1", "Requires explicit opt-in, selenium-webdriver and a compatible Chrome/ChromeDriver");
+      test.setTimeout(120000);
+      const directory = await mkdtemp(join(resolve("."), ".generated-selenium-"));
+      try {
+        const file = join(directory, language === "typescript" ? "generated.selenium.ts" : "generated.selenium.mjs");
+        await writeFile(file, exportSeleniumLanguage(standaloneScenario(), language), "utf8");
+        const args = language === "typescript"
+          ? ["--import", createRequire(import.meta.url).resolve("tsx"), file]
+          : [file];
+        await promisify(execFile)(process.execPath, args, {
+          cwd: directory, timeout: 90000, maxBuffer: 4 * 1024 * 1024,
+        });
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    });
+  }
 }
