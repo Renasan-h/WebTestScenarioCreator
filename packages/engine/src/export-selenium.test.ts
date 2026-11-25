@@ -1,3 +1,5 @@
+import ts from "typescript";
+import { exportPlaywrightTest } from "./export";
 import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import type { Scenario } from "../../schema/src/scenario";
@@ -409,6 +411,19 @@ describe("multi-language exports", () => {
       expect(pw).toContain("        else:\n            pass");
       expect(se).toContain("        else:\n            pass");
     }
+  });
+  it.each([["Playwright", exportPlaywrightTest(graph)], ["Selenium", exportSeleniumLanguage(graph, "typescript")]])("checks %s TypeScript syntax", (_name, code) => {
+    const result = ts.transpileModule(code, {
+      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+      reportDiagnostics: true,
+    });
+    expect(result.diagnostics?.filter(d => d.category === ts.DiagnosticCategory.Error) ?? []).toEqual([]);
+  });
+  const python = [process.platform === "win32" ? "py" : "python3", "python"].find(command =>
+    spawnSync(command, ["--version"], { encoding: "utf8" }).status === 0);
+  it.skipIf(!python).each([["Playwright", exportPlaywrightLanguage(graph, "python")], ["Selenium", exportSeleniumLanguage(graph, "python")]])("checks %s Python syntax", (_name, code) => {
+    const result = spawnSync(python!, ["-c", "import ast, sys; ast.parse(sys.stdin.buffer.read().decode('utf-8'))"], { input: code, encoding: "utf8" });
+    expect(result.status, result.stderr).toBe(0);
   });
   it("retains the Selenium TypeScript and JavaScript export", () => {
     expect(exportSeleniumLanguage(graph, "typescript")).toContain(exportSeleniumTest(graph));
