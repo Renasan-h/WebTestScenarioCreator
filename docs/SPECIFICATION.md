@@ -61,9 +61,14 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 - Seleniumの表示確認ノードは要素のDOM出現を待機してから可視状態を待機する。
 - Seleniumの `text` ロケーターは一致する子要素を持つ祖先を除外し、最も内側の一致要素を優先する。Playwright `getByText` との完全互換は保証しない。
 
+## 多言語コード出力
+
+- フレームワークと出力言語を独立選択する。Seleniumは既存JavaScriptも維持し、Playwrightへの切替時はJavaScriptからTypeScriptへ戻す。
+- Selenium TypeScriptは既存JavaScriptのESM互換コードを利用する。Python/Javaは既存XPathロケーターを共用し、直接実行形式で生成する。個別操作タイムアウトと実行互換性は未検証・改善対象。
+
 ## Playwrightコード出力
 
-- Pythonは同期APIのtest_scenario関数と直接実行入口、JavaはScenarioTestクラスのmainを生成する。JavaはPlaywright Java依存関係が必要。SeleniumのPython/Java/TypeScript出力は未実装。
+- Pythonは同期APIのtest_scenario関数と直接実行入口、JavaはScenarioTestクラスのmainを生成する。JavaはPlaywright Java依存関係が必要。SeleniumもPython/Java/TypeScriptを選択可能。
 
 - `test.use` に Chromium/Edge（msedgeチャネル）、headless、viewport、actionTimeout、navigationTimeoutを出力し、テスト本体でpage.setDefaultTimeoutを設定する。Playwright Test全体の制限時間や外部設定との競合は別途検証する。
 
