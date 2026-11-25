@@ -11,6 +11,11 @@
 
 ## 最新コミット情報
 
+- main: `dce83c3da9255b8ea9cfe0e5b73f537ae4642458` ユーザー承認によりci.ymlのみ追加、developと内容一致確認。手動のみ、CI未起動、UI表示未確認。公開設定変更なし。
+- `4e21888a4b2d9b4cdcddcad83f70696c79ab2935`: stdin EOFをSTOP相当として処理、ブラウザclose Promise共有、制御ループ例外をstderrへ出力。正常終了時の入力closeによる中断をfinishingで抑制。
+- `e6e3f1bac70c9835d130021d391ed1cf1456fbaa`: 仕様更新。 `e3491ed873953c732862b80f607a87568f0d2723`: 開発ルール更新。
+- Phase 3/4/5。テスト追加・実行、ビルド未実施。次はEOF/STOPの回帰テスト、起動中の停止（記録は初回navigate後に制御ループ開始）、制御入力例外時の中断、GUI停止状態、アプリ終了処理。close失敗時は再試行しないためRust側の強制停止に依存する場合あり。
+
 - `9a88c3ebacfe9ddb76d28b18c4a19affa5bc1d87`: 実行中断回帰テスト5件追加（開始前、一時停止中、操作完了、操作例外、通常完了）。模擬操作で検証、実ブラウザなし。
 - CIのRun workflow非表示報告あり。developのci.ymlはworkflow_dispatchのみ、mainの同ファイル取得は404。get_repoでデフォルトブランチmain、公開状態publicを確認。従来のPrivate運用ルールと現状が異なるためユーザー確認待ち。公開設定は変更していない。mainへの手動CI定義のみの配置を提案、承認待ち。CI未起動。
 - Phase 3/4/5。テスト・ビルド未実行。次はstdin EOF、close競合、停止状態GUI、アプリ終了処理。
