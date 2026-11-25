@@ -40,6 +40,9 @@
 
 ## コード出力の拡張（Phase 3）
 
+- [x] Playwright TypeScript/Python/Java選択と出力実装（未検証）
+- [ ] Python/Java生成コードの構文・実行テスト、Selenium言語拡張
+
 - [x] Playwright出力の個別タイムアウト・文字列条件NO分岐の整合性修正と実ブラウザ回帰テスト追加（未実行）
 
 - [x] Playwright TypeScript / Selenium JavaScript の出力先選択とコード生成を追加（未検証）
