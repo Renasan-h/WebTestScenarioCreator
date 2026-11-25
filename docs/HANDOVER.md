@@ -11,6 +11,9 @@
 
 ## 最新コミット情報
 
+- `2651b947855062e53e6c1af9099eeef8995ce1df`: Rust stop_runnerの回帰テスト4件追加。Node模擬ランナーの正常STOP、応答なし200ms猶予、stdinなし、終了済みを検証。終了コードと終了状態を確認し、残留時は直接終了を試みる。NodeがPATHに必要。実ブラウザ・孫プロセスは対象外。
+- Phase 3/4/5進行中。テスト・ビルド未実行、CI未起動。次はsidecarのSTOP時の実行中断とstdin EOF対応、アプリ終了時の後始末、強制停止後のUI状態確認。taskkill自体の時間上限は未対策。
+
 - `84a431b37b1b15222d012ca0472676a58b561afb`: Rustのstop_scenarioをspawn_blockingで実行、STOP送信後5秒の終了待機、送信失敗・期限超過時にWindows taskkill /PID /T /F、失敗時直接終了とエラー通知。待機中は子のMutexを解放。
 - `5776c87bc1965742177b241ff1d1455431bcc922`: 停止仕様更新。
 - Phase 3/4/5。テスト追加・実行、ビルド未実施、CI未起動。次はRust停止回帰テスト、sidecarのSTOP時の実行中断とstdin EOF、アプリ終了時の後始末を調査。STOP送信自体やtaskkillの時間は5秒に含まれず、親先行終了・PID競合・強制終了後のUI状態も未検証。
