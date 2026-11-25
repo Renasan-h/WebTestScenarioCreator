@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- `9a88c3ebacfe9ddb76d28b18c4a19affa5bc1d87`: 実行中断回帰テスト5件追加（開始前、一時停止中、操作完了、操作例外、通常完了）。模擬操作で検証、実ブラウザなし。
+- CIのRun workflow非表示報告あり。developのci.ymlはworkflow_dispatchのみ、mainの同ファイル取得は404。デフォルトブランチへの手動CI定義配置が必要な可能性。main変更は承認待ち、CI未起動。
+- Phase 3/4/5。テスト・ビルド未実行。次はstdin EOF、close競合、停止状態GUI、アプリ終了処理。
+
 - `0485f13e34a03fc598e58c89a1015e88448b65b9`: executeScenarioに任意AbortSignal追加、ノード前・一時停止解除後・操作完了/例外時に中断判定。既存イベント互換のためrun.finished failedを通知。
 - `f723696aac91f0032406fc234f85ac003a1659ca`: sidecarのSTOPで一時停止解除より先にabort、ブラウザを閉じる。
 - `a0cf7529c8e43d26d9c4ccddb493607c8d592eaa`: 中断仕様更新。
