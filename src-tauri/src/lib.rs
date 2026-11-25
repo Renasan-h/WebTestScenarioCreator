@@ -91,19 +91,52 @@ async fn debug_control(state: State<'_, RunnerState>, command: String) -> Result
     input.flush().map_err(|e| e.to_string())
 }
 
+// Only terminate the child owned by this run, never a process selected by name.
+fn force_stop(process: &mut Child) -> Result<(), String> {
+    if process.try_wait().map_err(|e| e.to_string())?.is_some() { return Ok(()); }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let status = Command::new("taskkill.exe")
+            .args(["/PID", &process.id().to_string(), "/T", "/F"])
+            .creation_flags(0x08000000)
+            .stdout(Stdio::null()).stderr(Stdio::null()).status();
+        if matches!(status, Ok(value) if value.success()) { return Ok(()); }
+        if process.try_wait().map_err(|e| e.to_string())?.is_none() {
+            process.kill().map_err(|e| e.to_string())?;
+        }
+        return Err("プロセスツリーの終了に失敗しました。ブラウザが残留している可能性があります".into());
+    }
+    #[cfg(not(windows))]
+    process.kill().map_err(|e| e.to_string())
+}
+
+fn stop_runner(child: Arc<Mutex<Child>>, grace: std::time::Duration) -> Result<(), String> {
+    {
+        let mut process = child.lock().map_err(|e| e.to_string())?;
+        if process.try_wait().map_err(|e| e.to_string())?.is_some() { return Ok(()); }
+        let sent = process.stdin.as_mut().is_some_and(|input| {
+            input.write_all(b"STOP\n").and_then(|_| input.flush()).is_ok()
+        });
+        if !sent { return force_stop(&mut process); }
+    }
+    let deadline = std::time::Instant::now() + grace;
+    loop {
+        {
+            let mut process = child.lock().map_err(|e| e.to_string())?;
+            if process.try_wait().map_err(|e| e.to_string())?.is_some() { return Ok(()); }
+            if std::time::Instant::now() >= deadline { return force_stop(&mut process); }
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+}
+
 #[tauri::command]
 async fn stop_scenario(state: State<'_, RunnerState>) -> Result<(), String> {
-    let running = state.child.lock().map_err(|e| e.to_string())?.clone();
-    let child = running.ok_or("実行中のシナリオがありません")?;
-    let mut process = child.lock().map_err(|e| e.to_string())?;
-    if process.try_wait().map_err(|e| e.to_string())?.is_some() { return Ok(()); }
-    if let Some(input) = process.stdin.as_mut() {
-        input.write_all(b"STOP\n").map_err(|e| e.to_string())?;
-        input.flush().map_err(|e| e.to_string())?;
-        Ok(())
-    } else {
-        process.kill().map_err(|e| e.to_string())
-    }
+    let child = state.child.lock().map_err(|e| e.to_string())?.clone()
+        .ok_or("実行中のシナリオがありません")?;
+    tauri::async_runtime::spawn_blocking(move || stop_runner(child, std::time::Duration::from_secs(5)))
+        .await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
