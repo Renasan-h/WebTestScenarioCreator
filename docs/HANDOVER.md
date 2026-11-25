@@ -11,6 +11,11 @@
 
 ## 最新コミット情報
 
+- 保存GUIテストの失敗はユーザーから解決報告あり。修正後の全47件のログは未受領。
+- `05dea1ed00791bca9f027e6900c2a22bfac21ce7`: tests/ui/generated-export.spec.ts に生成Playwright TS本体の実ブラウザ回帰テスト2件追加。日本語入力・roleクリック・文字列条件のYES/NO・結果確認。外部サイト不要。生成ファイル全体の独立実行ではなく本体抽出方式。
+- 今回テスト・ビルド未実行、CI未起動。次は pnpm test:e2e tests/ui/generated-export.spec.ts と全49件見込みの確認、生成ファイル独立実行、Selenium/Python/Java実ブラウザ検証。
+
+
 - ユーザー実行GUI: 47件中46成功・1失敗（23.6秒）。home.spec.ts:174でwrite.pathがundefined。保存名とフィルターは初回組合せで通過。残り組合せとキャンセルは未到達。
 - `a267a38c49e1b482acaf3ccde7004e9871efa8d2`: FS模擬をIPC第3引数のpathヘッダーとUTF-8バイト列を復号する方式へ修正。実際のインストール版IPC形式は再実行で確認する。アプリ本体変更なし。
 - 修正後テスト・ビルド未実行、CI未起動。次は失敗1件の再実行後、全47件確認。失敗時はUnexpected FS IPC payloadの詳細とtraceを確認。
