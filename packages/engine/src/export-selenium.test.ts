@@ -2,6 +2,8 @@ import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import type { Scenario } from "../../schema/src/scenario";
 import { exportSeleniumTest } from "./export-selenium";
+import { exportSeleniumLanguage } from "./export-selenium-languages";
+import { exportPlaywrightLanguage } from "./export-languages";
 
 const base: Scenario = {
   schemaVersion: "1.0",
@@ -370,5 +372,52 @@ describe("Selenium role name escaping", () => {
     expect(xpath).toContain(`concat('Bob', "'", 's "Save (draft)" button')`);
     const result = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: code, encoding: "utf8" });
     expect(result.status, result.stderr).toBe(0);
+  });
+});
+
+
+describe("multi-language exports", () => {
+  const graph: Scenario = {
+    ...base,
+    settings: { ...base.settings, browser: "edge", headless: true },
+    nodes: [
+      base.nodes[0], base.nodes[1],
+      { id: "fill", type: "fill", label: "Fill", position: { x: 0, y: 150 }, config: { locator: { strategy: "testId", value: "input" }, value: "日本語\"\\", timeoutMs: 800 }, screenshot: true },
+      { id: "branch", type: "condition", label: "Branch", position: { x: 0, y: 180 }, config: { locator: { strategy: "css", value: "#status" }, check: "visible" } },
+      base.nodes[2],
+    ],
+    edges: [
+      base.edges[0], { id: "f", source: "navigate", target: "fill" },
+      { id: "g", source: "fill", target: "branch" },
+      { id: "yes", source: "branch", target: "end", sourceHandle: "true" },
+      { id: "no", source: "branch", target: "end", sourceHandle: "false" },
+    ],
+  };
+  it.each(["python", "java"] as const)("generates Playwright and Selenium %s", language => {
+    const pw = exportPlaywrightLanguage(graph, language);
+    const se = exportSeleniumLanguage(graph, language);
+    for (const code of [pw, se]) {
+      expect(code).toContain("https://example.com");
+      expect(code).toContain("日本語");
+      expect(code).toContain("screenshots/fill.png");
+      expect(code).toContain(language === "python" ? "else:" : "} else {");
+    }
+    expect(pw).toContain("msedge");
+    expect(se).toContain("EdgeOptions");
+    expect(se).toContain(language === "python" ? "element.clear()" : "WebElement element_");
+    if (language === "python") {
+      expect(pw).toContain("        else:\n            pass");
+      expect(se).toContain("        else:\n            pass");
+    }
+  });
+  it("retains the Selenium TypeScript and JavaScript export", () => {
+    expect(exportSeleniumLanguage(graph, "typescript")).toContain(exportSeleniumTest(graph));
+    expect(exportSeleniumLanguage(graph, "javascript")).toBe(exportSeleniumTest(graph));
+  });
+  it("rejects invalid graphs in all new exporters", () => {
+    for (const language of ["python", "java"] as const) {
+      expect(() => exportPlaywrightLanguage({ ...graph, edges: [] }, language)).toThrow();
+      expect(() => exportSeleniumLanguage({ ...graph, edges: [] }, language)).toThrow();
+    }
   });
 });
