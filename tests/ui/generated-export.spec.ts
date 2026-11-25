@@ -5,6 +5,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { test, expect } from "@playwright/test";
 import { exportPlaywrightTest } from "../../packages/engine/src/export";
+import { exportSeleniumTest } from "../../packages/engine/src/export-selenium";
 import type { Scenario } from "../../packages/schema/src/scenario";
 
 for (const ready of [true, false]) {
@@ -32,6 +33,16 @@ for (const ready of [true, false]) {
       { id: "g", source: "no", target: "end" },
     ],
   };
+  function standaloneScenario(): Scenario {
+    const html = '<input data-testid="name" value="old"><button onclick="document.querySelector(\'#status\').textContent='
+      + (ready ? "\'Ready: \'" : "\'Rejected: \'")
+      + '+document.querySelector(\'input\').value">Submit</button><div id="status"></div>';
+    return {
+      ...scenario,
+      nodes: [...scenario.nodes, { id: "nav", type: "navigate", label: "Navigate", position: { x: 100, y: 0 }, config: { url: "data:text/html;charset=utf-8," + encodeURIComponent(html) } }],
+      edges: [...scenario.edges.map(edge => edge.source === "start" ? { ...edge, target: "nav" } : edge), { id: "nav-fill", source: "nav", target: "fill" }],
+    };
+  }
   test("generated Playwright flow executes " + (ready ? "YES" : "NO") + " branch", async ({ page }) => {
     await page.setContent('<input data-testid="name" value="old"><button>Submit</button><div id="status"></div>');
     await page.evaluate(prefix => {
@@ -51,14 +62,7 @@ for (const ready of [true, false]) {
     test.setTimeout(90000);
     const directory = await mkdtemp(join(resolve("."), ".generated-export-"));
     try {
-      const html = '<input data-testid="name" value="old"><button onclick="document.querySelector(\'#status\').textContent='
-        + (ready ? "\'Ready: \'" : "\'Rejected: \'")
-        + '+document.querySelector(\'input\').value">Submit</button><div id="status"></div>';
-      const standalone: Scenario = {
-        ...scenario,
-        nodes: [...scenario.nodes, { id: "nav", type: "navigate", label: "Navigate", position: { x: 100, y: 0 }, config: { url: "data:text/html;charset=utf-8," + encodeURIComponent(html) } }],
-        edges: [...scenario.edges.map(edge => edge.source === "start" ? { ...edge, target: "nav" } : edge), { id: "nav-fill", source: "nav", target: "fill" }],
-      };
+      const standalone = standaloneScenario();
       await writeFile(join(directory, "generated.spec.ts"), exportPlaywrightTest(standalone), "utf8");
       await writeFile(join(directory, "playwright.config.ts"), 'export default { testDir: ".", workers: 1, reporter: "json", retries: 0 };', "utf8");
       const cli = createRequire(import.meta.url).resolve("@playwright/test/cli");
@@ -67,6 +71,20 @@ for (const ready of [true, false]) {
       expect(report.stats.expected).toBe(1);
       expect(report.stats.unexpected).toBe(0);
       expect(report.stats.skipped).toBe(0);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+  test("standalone generated Selenium JavaScript executes " + (ready ? "YES" : "NO"), async () => {
+    test.skip(process.env.RUN_SELENIUM_EXPORT_TESTS !== "1", "Requires explicit opt-in, selenium-webdriver and a compatible Chrome/ChromeDriver");
+    test.setTimeout(120000);
+    const directory = await mkdtemp(join(resolve("."), ".generated-selenium-"));
+    try {
+      const file = join(directory, "generated.selenium.mjs");
+      await writeFile(file, exportSeleniumTest(standaloneScenario()), "utf8");
+      await promisify(execFile)(process.execPath, [file], {
+        cwd: directory, timeout: 90000, maxBuffer: 4 * 1024 * 1024,
+      });
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
