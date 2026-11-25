@@ -134,16 +134,23 @@ test("exports all supported framework and language combinations through the save
     };
     localStorage.setItem("scenario-directory", "C:\\scenario-files");
     Object.defineProperty(window, "__TAURI_INTERNALS__", { value: {
-      invoke: async (command: string, args?: Record<string, unknown>) => {
+      invoke: async (command: string, args?: Record<string, unknown> | Uint8Array, ipc?: { headers?: HeadersInit }) => {
         if (command === "list_scenario_files") return [{ path: "C:\\scenario-files\\export.pflow", name: fixture.metadata.name, category: "" }];
         if (command === "read_scenario_file") return JSON.stringify(fixture);
         if (command === "plugin:dialog|save") {
-          localStorage.setItem("export-dialog", JSON.stringify(args?.options));
+          localStorage.setItem("export-dialog", JSON.stringify((args as Record<string, unknown> | undefined)?.options));
           if (localStorage.getItem("cancel-export") === "yes") return null;
-          return "C:\\scenario-files\\" + (args?.options as { defaultPath: string }).defaultPath;
+          return "C:\\scenario-files\\" + ((args as Record<string, unknown> | undefined)?.options as { defaultPath: string }).defaultPath;
         }
         if (command === "plugin:fs|write_text_file") {
-          localStorage.setItem("export-write", JSON.stringify(args));
+          const encodedPath = new Headers(ipc?.headers).get("path");
+          if (!encodedPath || !(args instanceof Uint8Array)) {
+            throw new Error("Unexpected FS IPC payload: " + JSON.stringify({ args, ipc }));
+          }
+          localStorage.setItem("export-write", JSON.stringify({
+            path: decodeURIComponent(encodedPath),
+            content: new TextDecoder().decode(args),
+          }));
           return;
         }
         throw new Error("Unsupported command: " + command);
@@ -170,10 +177,11 @@ test("exports all supported framework and language combinations through the save
     const dialog = JSON.parse(await page.evaluate(() => localStorage.getItem("export-dialog")!));
     expect(dialog.defaultPath).toBe("出力確認" + suffix);
     expect(dialog.filters).toEqual([{ name: language, extensions: [extension] }]);
+    await expect(page.getByRole("contentinfo")).toContainText("コードを出力しました: ");
     const write = JSON.parse(await page.evaluate(() => localStorage.getItem("export-write")!));
     expect(write.path).toBe("C:\\scenario-files\\出力確認" + suffix);
-    expect(JSON.stringify(write)).toContain(marker);
-    expect(JSON.stringify(write)).toContain("https://example.com");
+    expect(write.content).toContain(marker);
+    expect(write.content).toContain("https://example.com");
   }
   await page.evaluate(() => {
     localStorage.setItem("cancel-export", "yes");
