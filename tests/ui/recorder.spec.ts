@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { attachRecorder, type RecordedAction } from "../../packages/playwright-adapter/src/record";
 import { runAction } from "../../packages/playwright-adapter/src/browser";
 import { appendRecordedAction } from "../../packages/playwright-adapter/src/record-graph";
+import { exportPlaywrightTest } from "../../packages/engine/src/export";
 import { executeScenario } from "../../packages/engine/src/execute";
 import { validateGraph, type Scenario } from "../../packages/schema/src/scenario";
 
@@ -82,4 +83,38 @@ test("records quoted test IDs as valid selectors", async ({ page }) => {
     await expect(page.locator(click.selector)).toHaveCount(1);
   }
   await detach();
+});
+
+
+test("exported Playwright actions preserve node timeouts and missing-text NO branch", async ({ page }) => {
+  const scenario: Scenario = {
+    schemaVersion: "1.0",
+    metadata: { id: "export", name: "Export parity", createdAt: "", updatedAt: "" },
+    settings: { browser: "chromium", headless: true, timeoutMs: 5000, viewport: { width: 800, height: 600 } },
+    variables: {},
+    nodes: [
+      { id: "start", type: "start", label: "Start", position: { x: 0, y: 0 }, config: {} },
+      { id: "branch", type: "condition", label: "Branch", position: { x: 0, y: 100 }, config: { check: "textContains", expected: "Ready", locator: { strategy: "css", value: "#missing" } } },
+      { id: "yes", type: "click", label: "Yes", position: { x: 0, y: 200 }, config: { locator: { strategy: "css", value: "#yes" }, timeoutMs: 800 } },
+      { id: "no", type: "fill", label: "No", position: { x: 200, y: 200 }, config: { locator: { strategy: "css", value: "#result" }, value: "NO", timeoutMs: 900 } },
+      { id: "end", type: "end", label: "End", position: { x: 0, y: 300 }, config: {} },
+    ],
+    edges: [
+      { id: "a", source: "start", target: "branch" },
+      { id: "b", source: "branch", target: "yes", sourceHandle: "true" },
+      { id: "c", source: "branch", target: "no", sourceHandle: "false" },
+      { id: "d", source: "yes", target: "end" },
+      { id: "e", source: "no", target: "end" },
+    ],
+  };
+  const code = exportPlaywrightTest(scenario);
+  expect(code).toContain('.click({"timeout":800})');
+  expect(code).toContain('.fill("NO", {"timeout":900})');
+  await page.setContent('<input id="result">');
+  page.setDefaultTimeout(300);
+  // Execute the generated test body against the real browser fixture.
+  const marker = "async ({ page }) => {";
+  const body = code.slice(code.indexOf(marker) + marker.length, code.lastIndexOf("});"));
+  await new Function("page", "return (async () => {" + body + "})();")(page);
+  await expect(page.locator("#result")).toHaveValue("NO");
 });
