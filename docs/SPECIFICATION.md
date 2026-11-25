@@ -74,7 +74,7 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 
 - Pythonは同期APIのtest_scenario関数と直接実行入口、JavaはScenarioTestクラスのmainを生成する。JavaはPlaywright Java依存関係が必要。SeleniumもPython/Java/TypeScriptを選択可能。
 
-- `test.use` に Chromium/Edge（msedgeチャネル）、headless、viewport、actionTimeout、navigationTimeoutを出力し、テスト本体でpage.setDefaultTimeoutを設定する。Playwright Test全体の制限時間や外部設定との競合は別途検証する。
+- `test.use` に Chromium/Edge（msedgeチャネル）、headless、viewport、actionTimeout、navigationTimeoutを出力し、テスト本体でpage.setDefaultTimeoutを設定する。生成TypeScriptでは `test.describe.configure({ timeout: 0 })` でテスト全体の制限時間を無効化し、個別操作のタイムアウトは維持する。外部設定のglobalTimeoutや停止操作は別途適用され得る。実行検証は未実施。
 
 - クリック・入力の個別timeoutMsを出力コードへ反映する。文字列条件の取得失敗は実行アダプターと同様にNOとして扱う。
 
