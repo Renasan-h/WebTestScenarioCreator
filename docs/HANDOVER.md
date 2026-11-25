@@ -1,6 +1,6 @@
 # 開発引き継ぎ（HANDOVER）
 
-> 更新日: 2026-11-25
+> 更新日: 2026-11-26
 > 対象ブランチ: `develop`
 > 最新HEADはGitHubのdevelopブランチで確認する。本書のコミット自身のSHAは事前記載しない。
 
@@ -10,6 +10,11 @@
 - Phase 5（品質確認）を並行して実施。その他の状態・完了条件は [ROADMAP.md](ROADMAP.md) を参照。
 
 ## 最新コミット情報
+
+- `098ed41410d2d043b6e5accde0d6c6e784caaa5d`: Selenium JavaScript生成ファイルの独立実行YES/NOテスト2件追加。Playwrightと同じdata URLシナリオを共用。RUN_SELENIUM_EXPORT_TESTS=1 の場合のみ実行し、未指定時はスキップ。selenium-webdriverと互換Chrome/ChromeDriverを利用者が準備する。依存関係の自動追加なし。
+- PowerShell: `$env:RUN_SELENIUM_EXPORT_TESTS = '1'` の後 `pnpm test:e2e tests/ui/generated-export.spec.ts -g 'standalone generated Selenium'`。通常全53件見込み（うち2件スキップ）。Selenium Managerがドライバー取得のため通信する可能性あり。
+- 今回テスト・ビルド未実行、CI未起動。次はPlaywright独立実行とSelenium実行結果確認、Selenium TSおよびPython/Java独立実行検証。子プロセスのタイムアウト時のブラウザ残留は未検証。
+
 
 - `80d8abfd203d5bcf7cb1150c7f03b218bf614e7c`: 生成Playwright TSファイル全体を別プロセスのPlaywright CLIで実行するYES/NOテスト2件追加。data URL、独立設定、JSON結果確認、一時ディレクトリ削除。外部サイト・追加依存不要。
 - テスト・ビルド未実行、CI未起動。次は pnpm test:e2e tests/ui/generated-export.spec.ts （4件）、全51件見込みの確認。子プロセス起動・CLI解決・data URLの動作は未検証。続いてSelenium/Python/Javaの実ブラウザ検証。
