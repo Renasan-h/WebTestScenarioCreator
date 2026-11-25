@@ -49,6 +49,7 @@ cargo check --manifest-path src-tauri/Cargo.toml
 ## CI・費用管理
 
 - `.github/workflows/ci.yml` は現在 **`workflow_dispatch` のみ**。pushによる自動実行は無効。
+- ユーザー承認によりmainにも同一の手動CI定義を配置。開発コードはマージせず、手動実行時はdevelopを選択する。
 - CIはWindowsランナーでフロントエンドのテスト・ビルド・GUIテスト、Rustの `cargo check` を実施する構成。
 - PrivateリポジトリのGitHub Actions無料枠を使い切り、ジョブ開始が請求・支出制限によりブロックされた経緯がある。
 - **追加課金を発生させない**。Actionsの予算・支出上限の引き上げ、有料ランナーの利用、手動CIの実行は、ユーザーの明示的な了承なしに行わない。
