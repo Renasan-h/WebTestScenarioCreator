@@ -58,7 +58,7 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 - `packages/engine/`、`packages/playwright-adapter/`: コード出力・ブラウザ実行関連。
 - `packages/engine/src/export-selenium.ts`: Selenium WebDriver JavaScriptコード出力。
 - Seleniumの `testId` ロケーターはXPathの文字列リテラルを利用し、引用符・バックスラッシュを含む値を保持する。
-- Seleniumの表示確認ノードは要素のDOM出現を待機してから可視状態を待機する。
+- Selenium全4言語の表示確認ノードは暗黙待機を一時的に0に設定し、単一の明示待機で最初の一致要素の検索・可視判定を繰り返す。要素消失時は再検索し、finallyで共通暗黙待機を復元する。ポーリング間隔や通信時間による超過はあり得る。
 - Seleniumの `text` ロケーターは一致する子要素を持つ祖先を除外し、最も内側の一致要素を優先する。Playwright `getByText` との完全互換は保証しない。
 
 ## 多言語コード出力
