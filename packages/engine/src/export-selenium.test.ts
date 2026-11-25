@@ -446,6 +446,19 @@ describe("multi-language exports", () => {
     }
   }, 70000);
   }
+  it("restores the common implicit timeout after an individually configured fill", () => {
+    for (const language of ["typescript", "javascript", "python", "java"] as const) {
+      const code = exportSeleniumLanguage(graph, language);
+      const override = language === "python" ? "driver.implicitly_wait(800 / 1000)" : language === "java" ? "implicitlyWait(Duration.ofMillis(800))" : "setTimeouts({ implicit: 800 })";
+      const restore = language === "python" ? "driver.implicitly_wait(timeout)" : language === "java" ? "implicitlyWait(timeout)" : "setTimeouts({ implicit: timeoutMs })";
+      const start = code.indexOf(override);
+      expect(start).toBeGreaterThanOrEqual(0);
+      const cleanup = code.indexOf("finally", start);
+      expect(cleanup).toBeGreaterThan(start);
+      expect(code.indexOf(restore, cleanup)).toBeGreaterThan(cleanup);
+      expect(code.indexOf("screenshots/fill.png", cleanup)).toBeGreaterThan(code.indexOf(restore, cleanup));
+    }
+  });
   it("retains the Selenium TypeScript and JavaScript export", () => {
     expect(exportSeleniumLanguage(graph, "typescript")).toContain(exportSeleniumTest(graph));
     expect(exportSeleniumLanguage(graph, "javascript")).toBe(exportSeleniumTest(graph));
