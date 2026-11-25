@@ -91,9 +91,7 @@ export function exportSeleniumTest(s: Scenario): string {
       lines.push(indent + `await fs.writeFile(${JSON.stringify(file)}, await driver.takeScreenshot(), "base64");`);
     }
     if (node.type === "condition") {
-      const expression = node.config.check === "visible"
-        ? `await driver.findElements(${locator(node.config.locator)}).then(async els => els.length > 0 && await els[0].isDisplayed())`
-        : `await driver.findElements(${locator(node.config.locator)}).then(async els => els.length > 0 && (await els[0].getText()).includes(${JSON.stringify(node.config.expected ?? "")}))`;
+      const expression = `await matches(driver, ${locator(node.config.locator)}, ${node.config.check === "visible" ? "null" : JSON.stringify(node.config.expected ?? "")})`;
       lines.push(indent + `if (${expression}) {`);
       const yes = s.edges.find(edge => edge.source === id && edge.sourceHandle === "true")!;
       const no = s.edges.find(edge => edge.source === id && edge.sourceHandle === "false")!;
@@ -112,10 +110,22 @@ export function exportSeleniumTest(s: Scenario): string {
   const builderOptions = s.settings.browser === "edge" ? "setEdgeOptions" : "setChromeOptions";
   const headless = s.settings.headless ? "options.addArguments(\"--headless=new\");\n" : "";
   return `// Generated from .pflow. Requires: npm install selenium-webdriver
-import { Builder, By, until } from "selenium-webdriver";
+import { Builder, By, until, error } from "selenium-webdriver";
 import * as chrome from "selenium-webdriver/chrome.js";
 import * as edge from "selenium-webdriver/edge.js";
 import * as fs from "node:fs/promises";
+
+async function matches(driver, locator, expected) {
+  try {
+    const elements = await driver.findElements(locator);
+    return elements.length > 0 && (expected === null
+      ? await elements[0].isDisplayed()
+      : (await elements[0].getText()).includes(expected));
+  } catch (cause) {
+    if (cause instanceof error.StaleElementReferenceError) return false;
+    throw cause;
+  }
+}
 
 const timeoutMs = ${s.settings.timeoutMs};
 const options = new ${options}();
