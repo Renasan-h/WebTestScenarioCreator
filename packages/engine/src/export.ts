@@ -65,5 +65,5 @@ export function exportPlaywrightTest(s: Scenario): string {
     actionTimeout: s.settings.timeoutMs,
     navigationTimeout: s.settings.timeoutMs,
   };
-  return `import { test } from "@playwright/test";\n\ntest.use(${JSON.stringify(options, null, 2)});\n\ntest(${JSON.stringify(s.metadata.name)}, async ({ page }) => {\n  page.setDefaultTimeout(${s.settings.timeoutMs});\n${statements.join("\n")}\n});\n`;
+  return `import { test } from "@playwright/test";\n\ntest.use(${JSON.stringify(options, null, 2)});\ntest.describe.configure({ timeout: 0 });\n\ntest(${JSON.stringify(s.metadata.name)}, async ({ page }) => {\n  page.setDefaultTimeout(${s.settings.timeoutMs});\n${statements.join("\n")}\n});\n`;
 }
