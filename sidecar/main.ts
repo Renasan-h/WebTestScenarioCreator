@@ -42,6 +42,7 @@ async function main() {
     } else {
       const debug = process.argv.includes("--debug");
       const gate: { resume?: () => void } = {};
+      const cancellation = new AbortController();
       let stepMode = debug;
       const beforeNode = debug ? async (_node: unknown, notifyPaused: () => void) => {
         if (!stepMode) return;
@@ -51,7 +52,7 @@ async function main() {
       if (lines) {
         void (async () => {
           for await (const line of { [Symbol.asyncIterator]: () => lines }) {
-            if (line === "STOP") { gate.resume?.(); gate.resume = undefined; await browser.close(); break; }
+            if (line === "STOP") { cancellation.abort(); gate.resume?.(); gate.resume = undefined; await browser.close(); break; }
             if (line === "STEP" || line === "CONTINUE") {
               if (line === "CONTINUE") stepMode = false;
               const release = gate.resume;
@@ -61,7 +62,7 @@ async function main() {
           }
         })();
       }
-      await executeScenario(scenario, n => runAction(page, n), e => process.stdout.write(JSON.stringify(e) + "\n"), undefined, beforeNode);
+      await executeScenario(scenario, n => runAction(page, n), e => process.stdout.write(JSON.stringify(e) + "\n"), undefined, beforeNode, cancellation.signal);
     }
   } finally {
     input?.close();
