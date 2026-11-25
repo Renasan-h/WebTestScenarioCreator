@@ -3,6 +3,7 @@ import { ReactFlow, Background, Controls, MiniMap, addEdge, useNodesState, useEd
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
+import { exportPlaywrightLanguage } from "../packages/engine/src/export-languages";
 import { exportPlaywrightTest } from "../packages/engine/src/export";
 import { exportSeleniumTest } from "../packages/engine/src/export-selenium";
 import type { RecordedAction } from "../packages/playwright-adapter/src/record";
@@ -79,7 +80,7 @@ function Editor() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
   const [selected, setSelected] = useState<string | null>(null);
   const [path, setPath] = useState<string | null>(null);
-  const [exportTarget, setExportTarget] = useState<"playwright" | "selenium">("playwright");
+  const [exportTarget, setExportTarget] = useState<"playwright" | "python" | "java" | "selenium">("playwright");
   const [logs, setLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [stopping, setStopping] = useState(false);
@@ -352,9 +353,9 @@ function Editor() {
   async function exportTest() {
     try {
       const isSelenium = exportTarget === "selenium";
-      const code = isSelenium ? exportSeleniumTest(snapshot()) : exportPlaywrightTest(snapshot());
-      const extension = isSelenium ? "mjs" : "ts";
-      const p = await save({ defaultPath: scenario.metadata.name + (isSelenium ? ".selenium.mjs" : ".spec.ts"), filters: [{ name: isSelenium ? "JavaScript ES Module" : "TypeScript", extensions: [extension] }] });
+      const code = isSelenium ? exportSeleniumTest(snapshot()) : exportTarget === "python" || exportTarget === "java" ? exportPlaywrightLanguage(snapshot(), exportTarget) : exportPlaywrightTest(snapshot());
+      const extension = isSelenium ? "mjs" : exportTarget === "python" ? "py" : exportTarget === "java" ? "java" : "ts";
+      const p = await save({ defaultPath: scenario.metadata.name + (isSelenium ? ".selenium.mjs" : exportTarget === "python" ? ".py" : exportTarget === "java" ? ".java" : ".spec.ts"), filters: [{ name: isSelenium ? "JavaScript ES Module" : exportTarget === "python" ? "Python" : exportTarget === "java" ? "Java" : "TypeScript", extensions: [extension] }] });
       if (!p) return;
       await writeTextFile(p, code);
       setMessage((isSelenium ? "Selenium" : "Playwright") + "コードを出力しました: " + p);
@@ -478,7 +479,7 @@ function Editor() {
           <button disabled={busy} onClick={copySelected} title="Ctrl+C">コピー</button>
           <button disabled={busy || !clipboardReady} onClick={paste} title="Ctrl+V">貼り付け</button>
           <button disabled={busy} onClick={persist} title="Ctrl+S">保存</button>
-          <label>コード出力先 <select aria-label="コード出力先" value={exportTarget} disabled={busy} onChange={e => setExportTarget(e.target.value as "playwright" | "selenium")}><option value="playwright">Playwright (TypeScript)</option><option value="selenium">Selenium (JavaScript)</option></select></label>
+          <label>コード出力先 <select aria-label="コード出力先" value={exportTarget} disabled={busy} onChange={e => setExportTarget(e.target.value as "playwright" | "python" | "java" | "selenium")}><option value="playwright">Playwright (TypeScript)</option><option value="python">Playwright (Python)</option><option value="java">Playwright (Java)</option><option value="selenium">Selenium (JavaScript)</option></select></label>
           <button disabled={busy} onClick={exportTest}>コード出力</button>
           <button className="record-button" disabled={busy} onClick={startRecording}>{recording ? "記録中…" : "● 記録"}</button>
           <button className="run-button" disabled={busy} onClick={() => run(false)}>▶ 実行</button>
