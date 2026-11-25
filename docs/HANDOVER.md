@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- `5e19b80d1ab600f15c9d1f62b31e482393ca07cd`: Java生成コードのjavacコンパイルテスト2件追加。PLAYWRIGHT_JAVA_CLASSPATH / SELENIUM_JAVA_CLASSPATH に依存JARのクラスパスを指定した場合のみ実行。未設定はスキップ。JDKと依存JARの準備が必要で自動取得は行わない。
+- 今回のテスト・ビルド未実行、CI未起動。次は実行結果確認、Selenium個別タイムアウトと保存拡張子検証。Java実ブラウザ実行は未検証。
+
+
 - `84fd67b80d3e0efebcf75e4f4957273be0522694`: Playwright/SeleniumのTypeScript変換診断とPython AST構文テスト4件追加。Python未導入環境ではPythonの2件をスキップする。型解決・依存ライブラリ・実ブラウザ動作は検証対象外。
 - 今回のテスト・ビルド未実行、CI未起動。次は単体テスト実行結果の確認、Java依存関係付きコンパイル検証、Selenium個別タイムアウトと保存拡張子検証。
 
