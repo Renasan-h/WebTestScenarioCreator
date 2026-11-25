@@ -1,8 +1,7 @@
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { delimiter, join, resolve } from "node:path";
 import { createRequire } from "node:module";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { runExportProcess } from "../helpers/run-export-process";
 import { test, expect } from "@playwright/test";
 import { exportPlaywrightLanguage } from "../../packages/engine/src/export-languages";
 import { exportPlaywrightTest } from "../../packages/engine/src/export";
@@ -67,7 +66,7 @@ for (const ready of [true, false]) {
       await writeFile(join(directory, "generated.spec.ts"), exportPlaywrightTest(standalone), "utf8");
       await writeFile(join(directory, "playwright.config.ts"), 'export default { testDir: ".", workers: 1, reporter: "json", retries: 0 };', "utf8");
       const cli = createRequire(import.meta.url).resolve("@playwright/test/cli");
-      const { stdout } = await promisify(execFile)(process.execPath, [cli, "test", "--config", join(directory, "playwright.config.ts")], { cwd: directory, timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
+      const { stdout } = await runExportProcess(process.execPath, [cli, "test", "--config", join(directory, "playwright.config.ts")], { cwd: directory, timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
       const report = JSON.parse(stdout);
       expect(report.stats.expected).toBe(1);
       expect(report.stats.unexpected).toBe(0);
@@ -87,7 +86,7 @@ for (const ready of [true, false]) {
         const args = language === "typescript"
           ? ["--import", createRequire(import.meta.url).resolve("tsx"), file]
           : [file];
-        await promisify(execFile)(process.execPath, args, {
+        await runExportProcess(process.execPath, args, {
           cwd: directory, timeout: 90000, maxBuffer: 4 * 1024 * 1024,
         });
       } finally {
@@ -108,7 +107,7 @@ for (const ready of [true, false]) {
           ? exportPlaywrightLanguage(standaloneScenario(), "python")
           : exportSeleniumLanguage(standaloneScenario(), "python");
         await writeFile(file, code, "utf8");
-        await promisify(execFile)(python, ["-E", "-X", "utf8", file], {
+        await runExportProcess(python, ["-E", "-X", "utf8", file], {
           cwd: directory, timeout: 90000, maxBuffer: 4 * 1024 * 1024,
         });
       } finally {
@@ -131,7 +130,7 @@ for (const ready of [true, false]) {
           ? exportPlaywrightLanguage(standaloneScenario(), "java")
           : exportSeleniumLanguage(standaloneScenario(), "java");
         await writeFile(file, code, "utf8");
-        const run = promisify(execFile);
+        const run = runExportProcess;
         await run("javac", ["-encoding", "UTF-8", "-cp", classpath, "-d", directory, file], {
           cwd: directory, timeout: 60000, maxBuffer: 4 * 1024 * 1024,
         });
@@ -172,7 +171,7 @@ test("standalone generated Playwright exceeds configured test timeout", async ()
     await writeFile(join(directory, "generated.spec.ts"), exportPlaywrightTest(scenario), "utf8");
     await writeFile(join(directory, "playwright.config.ts"), 'export default { testDir: ".", timeout: 2000, globalTimeout: 45000, workers: 1, reporter: "json", retries: 0 };', "utf8");
     const cli = createRequire(import.meta.url).resolve("@playwright/test/cli");
-    const { stdout } = await promisify(execFile)(process.execPath, [cli, "test", "--config", join(directory, "playwright.config.ts")], { cwd: directory, timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
+    const { stdout } = await runExportProcess(process.execPath, [cli, "test", "--config", join(directory, "playwright.config.ts")], { cwd: directory, timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
     const report = JSON.parse(stdout);
     expect(report.stats.expected).toBe(1);
     expect(report.stats.unexpected).toBe(0);
