@@ -240,3 +240,61 @@ mod scenario_directory_tests {
         std::fs::remove_dir_all(&root).unwrap();
     }
 }
+
+#[cfg(test)]
+mod runner_stop_tests {
+    use super::*;
+    use std::time::{Duration, Instant};
+
+    // Node is already required by the development runner.
+    fn runner(script: &str, piped: bool) -> Arc<Mutex<Child>> {
+        Arc::new(Mutex::new(Command::new("node")
+            .args(["-e", script])
+            .stdin(if piped { Stdio::piped() } else { Stdio::null() })
+            .stdout(Stdio::null()).stderr(Stdio::null())
+            .spawn().expect("Node.js is required for runner tests")))
+    }
+
+    fn assert_stopped(child: Arc<Mutex<Child>>, grace: Duration, expected_success: bool) {
+        let result = stop_runner(child.clone(), grace);
+        let deadline = Instant::now() + Duration::from_secs(3);
+        let status = loop {
+            let mut process = child.lock().unwrap();
+            if let Some(status) = process.try_wait().unwrap() { break Some(status); }
+            if Instant::now() >= deadline {
+                let _ = process.kill();
+                let _ = process.wait();
+                break None;
+            }
+            drop(process);
+            std::thread::sleep(Duration::from_millis(50));
+        };
+        result.expect("stop_runner failed");
+        assert_eq!(status.expect("runner remained alive").success(), expected_success);
+    }
+
+    #[test]
+    fn stops_cooperative_runner_gracefully() {
+        let child = runner("require('node:readline').createInterface({input:process.stdin}).on('line', line => { if(line === 'STOP') process.exit(0); }); setTimeout(() => process.exit(9), 15000);", true);
+        assert_stopped(child, Duration::from_secs(5), true);
+    }
+
+    #[test]
+    fn forces_unresponsive_runner_after_grace() {
+        let child = runner("setTimeout(() => process.exit(0), 15000);", true);
+        assert_stopped(child, Duration::from_millis(200), false);
+    }
+
+    #[test]
+    fn forces_runner_without_stdin() {
+        let child = runner("setTimeout(() => process.exit(0), 15000);", false);
+        assert_stopped(child, Duration::from_secs(5), false);
+    }
+
+    #[test]
+    fn stopping_exited_runner_is_idempotent() {
+        let child = runner("process.exit(0);", true);
+        assert!(child.lock().unwrap().wait().unwrap().success());
+        assert_stopped(child, Duration::ZERO, true);
+    }
+}
