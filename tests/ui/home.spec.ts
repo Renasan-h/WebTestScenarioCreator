@@ -175,4 +175,20 @@ test("exports all supported framework and language combinations through the save
     expect(JSON.stringify(write)).toContain(marker);
     expect(JSON.stringify(write)).toContain("https://example.com");
   }
+  await page.evaluate(() => {
+    localStorage.setItem("cancel-export", "yes");
+    localStorage.removeItem("export-dialog");
+    localStorage.removeItem("export-write");
+  });
+  const status = page.getByRole("contentinfo");
+  const previousStatus = await status.innerText();
+  await page.getByRole("button", { name: "コード出力", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("export-dialog"))).not.toBeNull();
+  // A subsequent successful export proves that cancellation did not block the editor.
+  await page.evaluate(() => localStorage.removeItem("cancel-export"));
+  await expect(status).toHaveText(previousStatus);
+  expect(await page.evaluate(() => localStorage.getItem("export-write"))).toBeNull();
+  await page.getByRole("button", { name: "コード出力", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("export-write"))).not.toBeNull();
+
 });
