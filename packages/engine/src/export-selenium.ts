@@ -1,7 +1,7 @@
 import type { LocatorSpec, Scenario, ScenarioNode } from "../../schema/src/scenario";
 import { validateGraph } from "../../schema/src/scenario";
 
-function locator(spec: LocatorSpec): string {
+export function locator(spec: LocatorSpec): string {
   switch (spec.strategy) {
     case "css": return `By.css(${JSON.stringify(spec.value)})`;
     case "testId": return `By.xpath(${JSON.stringify("//*[@data-testid=" + xpathLiteral(spec.value) + "]")})`;
