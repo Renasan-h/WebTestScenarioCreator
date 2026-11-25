@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- `80d8abfd203d5bcf7cb1150c7f03b218bf614e7c`: 生成Playwright TSファイル全体を別プロセスのPlaywright CLIで実行するYES/NOテスト2件追加。data URL、独立設定、JSON結果確認、一時ディレクトリ削除。外部サイト・追加依存不要。
+- テスト・ビルド未実行、CI未起動。次は pnpm test:e2e tests/ui/generated-export.spec.ts （4件）、全51件見込みの確認。子プロセス起動・CLI解決・data URLの動作は未検証。続いてSelenium/Python/Javaの実ブラウザ検証。
+
+
 - 保存GUIテストの失敗はユーザーから解決報告あり。修正後の全47件のログは未受領。
 - `05dea1ed00791bca9f027e6900c2a22bfac21ce7`: tests/ui/generated-export.spec.ts に生成Playwright TS本体の実ブラウザ回帰テスト2件追加。日本語入力・roleクリック・文字列条件のYES/NO・結果確認。外部サイト不要。生成ファイル全体の独立実行ではなく本体抽出方式。
 - 今回テスト・ビルド未実行、CI未起動。次は pnpm test:e2e tests/ui/generated-export.spec.ts と全49件見込みの確認、生成ファイル独立実行、Selenium/Python/Java実ブラウザ検証。
