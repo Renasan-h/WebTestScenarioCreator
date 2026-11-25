@@ -28,7 +28,7 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 - 右クリックメニューおよびDelete/Backspaceによる削除。開始・終了ノードは削除保護。
 - 開始ノードへの入力、終了ノードからの出力、自己接続、同一出力端子からの重複接続を禁止。
 - 条件分岐はYES（true）とNO（false）の別出力を持つ。
-- `.pflow` の保存、コード出力先（Playwright TypeScript `.spec.ts` / Selenium JavaScript ES Module `.selenium.mjs`）の選択、操作記録、実行。
+- `.pflow` の保存、コード出力先（Playwright TypeScript `.spec.ts` / Python `.py` / Java `.java` / Selenium JavaScript ES Module `.selenium.mjs`）の選択、操作記録、実行。
 - `.pflow` はフレームワーク非依存の共通形式とし、将来のSelenium⇔Playwright変換は `.pflow` の読込・出力を介して実現する方針。
 - Seleniumコード出力はJavaScriptの `selenium-webdriver` を使用し、Edge/Chromeの選択・headless・timeout・viewportを出力コードへ反映。入力ノードは既存の入力値を消してから新しい文字列を入力する（Playwrightの `fill` に合わせる）。実行・操作記録は現時点ではPlaywrightベースであり、Selenium実行エンジンは未実装。
 - Ctrl+Sで保存。実行中は編集操作を制限。
@@ -62,6 +62,8 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 - Seleniumの `text` ロケーターは一致する子要素を持つ祖先を除外し、最も内側の一致要素を優先する。Playwright `getByText` との完全互換は保証しない。
 
 ## Playwrightコード出力
+
+- Pythonは同期APIのtest_scenario関数と直接実行入口、JavaはScenarioTestクラスのmainを生成する。JavaはPlaywright Java依存関係が必要。SeleniumのPython/Java/TypeScript出力は未実装。
 
 - `test.use` に Chromium/Edge（msedgeチャネル）、headless、viewport、actionTimeout、navigationTimeoutを出力し、テスト本体でpage.setDefaultTimeoutを設定する。Playwright Test全体の制限時間や外部設定との競合は別途検証する。
 
