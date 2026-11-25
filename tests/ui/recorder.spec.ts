@@ -109,9 +109,17 @@ test("exported Playwright actions preserve node timeouts and missing-text NO bra
   };
   const code = exportPlaywrightTest(scenario);
   expect(code).toContain('.click({"timeout":800})');
+  const options = JSON.parse(code.slice(code.indexOf("test.use(") + "test.use(".length, code.indexOf(");")));
+  expect(options).toEqual({
+    browserName: "chromium", headless: true, viewport: { width: 800, height: 600 },
+    actionTimeout: 5000, navigationTimeout: 5000,
+  });
+  const edgeCode = exportPlaywrightTest({ ...scenario, settings: { ...scenario.settings, browser: "edge", headless: false } });
+  expect(edgeCode).toContain('"channel": "msedge"');
+  expect(edgeCode).toContain('"headless": false');
+  expect(code).toContain("page.setDefaultTimeout(5000)");
   expect(code).toContain('.fill("NO", {"timeout":900})');
   await page.setContent('<input id="result">');
-  page.setDefaultTimeout(300);
   // Execute the generated test body against the real browser fixture.
   const marker = "async ({ page }) => {";
   const body = code.slice(code.indexOf(marker) + marker.length, code.lastIndexOf("});"));
