@@ -68,6 +68,8 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 
 - Selenium全4言語で共通timeoutMsをページ読み込みタイムアウトにも設定する。要素検索の個別タイムアウトとは独立し、シナリオ全体の制限時間ではない。
 
+- Selenium全4言語の条件分岐では要素未検出・StaleElementReference例外をNOとし、その他の例外は伝播する。最初の一致要素を対象とし、暗黙待機と文字列取得方式のPlaywrightとの差は残る。
+
 ## Playwrightコード出力
 
 - Pythonは同期APIのtest_scenario関数と直接実行入口、JavaはScenarioTestクラスのmainを生成する。JavaはPlaywright Java依存関係が必要。SeleniumもPython/Java/TypeScriptを選択可能。
