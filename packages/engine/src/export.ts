@@ -13,8 +13,8 @@ function statement(n: ScenarioNode): string | null {
   switch (n.type) {
     case "start": case "end": case "condition": return null;
     case "navigate": return `await page.goto(${JSON.stringify(n.config.url)});`;
-    case "click": return `await ${loc(n.config.locator)}.click();`;
-    case "fill": return `await ${loc(n.config.locator)}.fill(${JSON.stringify(n.config.value)});`;
+    case "click": return `await ${loc(n.config.locator)}.click(${n.config.timeoutMs === undefined ? "" : JSON.stringify({ timeout: n.config.timeoutMs })});`;
+    case "fill": return `await ${loc(n.config.locator)}.fill(${JSON.stringify(n.config.value)}${n.config.timeoutMs === undefined ? "" : ", " + JSON.stringify({ timeout: n.config.timeoutMs })});`;
     case "assertText": return `if (!(await ${loc(n.config.locator)}.innerText()).includes(${JSON.stringify(n.config.expected)})) throw new Error("Text assertion failed");`;
     case "assertVisible": return `await ${loc(n.config.locator)}.waitFor({ state: "visible" });`;
     case "wait": return `await page.waitForTimeout(${n.config.durationMs});`;
@@ -40,7 +40,7 @@ export function exportPlaywrightTest(s: Scenario): string {
       const target = loc(node.config.locator);
       const expression = node.config.check === "visible"
         ? `await ${target}.isVisible()`
-        : `(await ${target}.textContent())?.includes(${JSON.stringify(node.config.expected ?? "")}) ?? false`;
+        : `(await ${target}.textContent().catch(() => null))?.includes(${JSON.stringify(node.config.expected ?? "")}) ?? false`;
       statements.push(indent + `if (${expression}) {`);
       const yes = s.edges.find(e => e.source === id && e.sourceHandle === "true")!;
       const no = s.edges.find(e => e.source === id && e.sourceHandle === "false")!;
