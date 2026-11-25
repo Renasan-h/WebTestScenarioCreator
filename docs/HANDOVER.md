@@ -11,6 +11,11 @@
 
 ## 最新コミット情報
 
+- `99433a9289312609d26ffa65e720a62c3da29ce9`: Playwright/Selenium Java独立実行テスト4件追加。RUN_PLAYWRIGHT_JAVA_EXPORT_TESTS / RUN_SELENIUM_JAVA_EXPORT_TESTS を1に設定し、対応する PLAYWRIGHT_JAVA_CLASSPATH / SELENIUM_JAVA_CLASSPATH を指定。JDKと依存JARは利用者が準備。javac UTF-8コンパイル後にjavaでScenarioTestを実行。
+- `dd359d0c323b0586c9832c9c5f7ea3c9cebf0a35`: 前回のPython独立実行テスト4件追加を追記。RUN_PLAYWRIGHT_PYTHON_EXPORT_TESTS / RUN_SELENIUM_PYTHON_EXPORT_TESTS を1に設定、EXPORT_PYTHON_EXECUTABLEで実行ファイル指定。
+- 全7形式の独立実行テスト実装済み。全63件見込み（通常51件、任意12件）。実行・ビルド未実施、CI未起動。次は全形式の実行結果確認、失敗修正、Phase 3完了条件評価。Java依存解決・ブラウザ動作・タイムアウト時の残留プロセスは未検証。
+
+
 - `1f622b900888ae158a747e2dc9b17e3c405ae0c9`: Selenium TypeScriptの生成ファイル独立実行YES/NOテスト2件追加。既存tsxをNode --importで読み込み、生成.tsをそのまま実行。JSと共通化し実際の言語選択エクスポーターを使用。RUN_SELENIUM_EXPORT_TESTS=1で両言語を有効化。通常全55件見込み（4件スキップ）。
 - テスト・ビルド未実行、CI未起動。tsxの解決と実行、実ブラウザ動作、型チェックは未検証。次は Selenium/Playwright PythonとJavaの独立実行検証。最新GUI結果は未受領。
 
