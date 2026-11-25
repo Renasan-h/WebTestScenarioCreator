@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- `f012260bff5446a80e277932836a9d1906509bc4`: sidecar実プロセスとChromiumを使うPlaywright回帰テスト2件追加。デバッグ開始ノード一時停止中にSTOP/EOF、終了コード0、failed終了イベント1件、ノード実行なしを検証。Windows失敗時はPID指定taskkillで後始末を試みる。
+- ユーザーからRun workflow表示確認あり。非表示問題解決。CI未起動、手動のみ維持。
+- Phase 3/4/5。テスト・ビルド未実行。次は起動中の停止、記録モードEOF回帰テスト、制御入力例外、GUI停止状態、アプリ終了処理。親先行終了時や非Windowsの子孫後始末、実ブラウザ動作は未検証。
+
 - main: `dce83c3da9255b8ea9cfe0e5b73f537ae4642458` ユーザー承認によりci.ymlのみ追加、developと内容一致確認。手動のみ、CI未起動、UI表示未確認。公開設定変更なし。
 - `4e21888a4b2d9b4cdcddcad83f70696c79ab2935`: stdin EOFをSTOP相当として処理、ブラウザclose Promise共有、制御ループ例外をstderrへ出力。正常終了時の入力closeによる中断をfinishingで抑制。
 - `e6e3f1bac70c9835d130021d391ed1cf1456fbaa`: 仕様更新。 `e3491ed873953c732862b80f607a87568f0d2723`: 開発ルール更新。
