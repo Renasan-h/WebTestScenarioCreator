@@ -22,8 +22,10 @@ export function exportSeleniumLanguage(s: Scenario, language: "typescript" | "py
       case "navigate": emit("driver.get(" + q(n.config.url) + ")"); break;
       case "click": emit(find(n.config.locator) + ".click()"); break;
       case "fill":
-        emit(find(n.config.locator) + ".clear()");
-        emit(find(n.config.locator) + (py ? ".send_keys(" : ".sendKeys(") + q(n.config.value) + ")"); break;
+        emit((py ? "element = " : "WebElement element_" + lines.length + " = ") + find(n.config.locator));
+        const element = py ? "element" : "element_" + (lines.length - 1);
+        emit(element + ".clear()");
+        emit(element + (py ? ".send_keys(" : ".sendKeys(") + q(n.config.value) + ")"); break;
       case "wait": emit(py ? "time.sleep(" + n.config.durationMs + " / 1000)" : "Thread.sleep(" + n.config.durationMs + ")"); break;
       case "assertVisible": emit(py ? "WebDriverWait(driver, timeout).until(EC.visibility_of_element_located(" + loc(n.config.locator) + "))" : "new WebDriverWait(driver, timeout).until(ExpectedConditions.visibilityOfElementLocated(" + loc(n.config.locator) + "))"); break;
       case "assertText": emit(py ? "assert " + q(n.config.expected) + " in " + find(n.config.locator) + ".text" : "if (!" + find(n.config.locator) + ".getText().contains(" + q(n.config.expected) + ")) throw new AssertionError(\"Text assertion failed\")"); break;
