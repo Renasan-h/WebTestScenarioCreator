@@ -11,6 +11,11 @@
 
 ## 最新コミット情報
 
+- `22be1f99c8e98b0affeb4ce1d80345cd0d0148ad`: Playwright Python/Java生成追加。
+- `3519e2eec28465a08c0116aaae90f958af1e368a`: GUI選択と拡張子追加。既存Selenium JavaScript維持。
+- 今回はPlaywrightの3言語を先行実装。Seleniumの3言語対応、生成コードの構文・実ブラウザ検証、回帰テスト追加は次の作業。テスト・ビルド未実行、CI未起動。
+
+
 - `a9e7c5845865ae381290d2d48fc274bc0b38b96b`: Playwright出力にブラウザ、headless、viewport、共通タイムアウトを反映。
 - `44621b2515f9135d01a0437f21bcb4ea2a0e3a75`: 既存生成コード回帰テストに設定出力の検証を追加。全45件見込み。設定は文字列検査であり、Edge起動・test.use適用の実行検証ではない。
 - 今回のテスト・ビルド未実行、CI未起動。前回の実行結果も未受領。次は全テスト確認、Playwright Test全体のタイムアウト・外部設定との競合、Selenium実ブラウザ検証。
