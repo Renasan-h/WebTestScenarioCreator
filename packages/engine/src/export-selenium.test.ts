@@ -503,3 +503,21 @@ describe("Selenium navigation timeout", () => {
     }
   });
 });
+
+describe("Selenium condition error handling", () => {
+  it("returns false for missing or stale elements and propagates unrelated errors", async () => {
+    const code = exportSeleniumTest(base);
+    const helper = code.slice(code.indexOf("async function matches("), code.indexOf("const timeoutMs ="));
+    class StaleElementReferenceError extends Error {}
+    const matches = new Function("error", helper + "\nreturn matches;")({ StaleElementReferenceError });
+    const driver = (elements: unknown[]) => ({ findElements: async () => elements });
+    expect(await matches(driver([]), null, null)).toBe(false);
+    expect(await matches(driver([{ isDisplayed: async () => true }]), null, null)).toBe(true);
+    expect(await matches(driver([{ getText: async () => "日本語" }]), null, "日本")).toBe(true);
+    const stale = async () => { throw new StaleElementReferenceError(); };
+    expect(await matches(driver([{ isDisplayed: stale }]), null, null)).toBe(false);
+    expect(await matches(driver([{ getText: stale }]), null, "日本")).toBe(false);
+    const failure = new Error("driver disconnected");
+    await expect(matches({ findElements: async () => { throw failure; } }, null, null)).rejects.toBe(failure);
+  });
+});
