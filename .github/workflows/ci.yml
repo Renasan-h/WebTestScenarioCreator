@@ -1,0 +1,42 @@
+name: CI
+
+# 開発中は無料枠を節約するため手動実行のみ。
+# GitHub の Actions タブから「Run workflow」で実行できます。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: pnpm install --no-frozen-lockfile
+      - name: Unit tests
+        run: pnpm test
+      - name: TypeScript and Vite build
+        run: pnpm build
+      - name: Install browser for UI tests
+        run: pnpm exec playwright install chromium
+      - name: Browser UI tests
+        run: pnpm test:e2e
+
+  rust:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Check Tauri Rust
+        run: cargo check --manifest-path src-tauri/Cargo.toml
