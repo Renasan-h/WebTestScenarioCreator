@@ -1,5 +1,8 @@
 import ts from "typescript";
 import { exportPlaywrightTest } from "./export";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import type { Scenario } from "../../schema/src/scenario";
@@ -425,6 +428,24 @@ describe("multi-language exports", () => {
     const result = spawnSync(python!, ["-c", "import ast, sys; ast.parse(sys.stdin.buffer.read().decode('utf-8'))"], { input: code, encoding: "utf8" });
     expect(result.status, result.stderr).toBe(0);
   });
+  for (const [name, envKey, code] of [
+    ["Playwright", "PLAYWRIGHT_JAVA_CLASSPATH", exportPlaywrightLanguage(graph, "java")],
+    ["Selenium", "SELENIUM_JAVA_CLASSPATH", exportSeleniumLanguage(graph, "java")],
+  ]) {
+  const classpath = process.env[envKey];
+  it.skipIf(!classpath)(`compiles ${name} Java`, () => {
+    const directory = mkdtempSync(join(tmpdir(), "pflow-java-"));
+    try {
+      const source = join(directory, "ScenarioTest.java");
+      writeFileSync(source, code, "utf8");
+      const result = spawnSync("javac", ["-encoding", "UTF-8", "-cp", classpath!, "-d", directory, source], { encoding: "utf8", timeout: 60000 });
+      expect(result.error).toBeUndefined();
+      expect(result.status, result.stderr).toBe(0);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  }, 70000);
+  }
   it("retains the Selenium TypeScript and JavaScript export", () => {
     expect(exportSeleniumLanguage(graph, "typescript")).toContain(exportSeleniumTest(graph));
     expect(exportSeleniumLanguage(graph, "javascript")).toBe(exportSeleniumTest(graph));
