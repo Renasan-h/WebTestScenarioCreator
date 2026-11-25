@@ -165,8 +165,9 @@ describe("Selenium visible assertion", () => {
       })),
     };
     const code = exportSeleniumTest(graph);
-    expect(code).toContain('until.elementLocated(By.css("#result"))');
-    expect(code).toContain("until.elementIsVisible(await driver.wait(");
+    expect(code).toContain('await waitVisible(driver, By.css("#result"), timeoutMs)');
+    expect(code).toContain("await driver.wait(async () => matches(driver, locator, null), timeoutMs)");
+    expect(code).toContain("setTimeouts({ implicit: 0 })");
     expect(code).not.toContain('elementIsVisible(await driver.findElement(By.css("#result")))');
     const result = spawnSync(process.execPath, ["--check", "--input-type=module"], { input: code, encoding: "utf8" });
     expect(result.status, result.stderr).toBe(0);
@@ -520,4 +521,26 @@ describe("Selenium condition error handling", () => {
     const failure = new Error("driver disconnected");
     await expect(matches({ findElements: async () => { throw failure; } }, null, null)).rejects.toBe(failure);
   });
+});
+
+it("restores implicit waiting after visible assertion success or failure", async () => {
+  const code = exportSeleniumTest(base);
+  const helper = code.slice(code.indexOf("async function waitVisible("), code.indexOf("const timeoutMs ="));
+  const waitVisible = new Function("error", helper + "\nreturn waitVisible;")({ StaleElementReferenceError: class extends Error {} });
+  for (const fail of [false, true]) {
+    const settings: number[] = [];
+    const failure = new Error("timeout");
+    const driver = {
+      manage: () => ({ setTimeouts: async ({ implicit }: { implicit: number }) => { settings.push(implicit); } }),
+      findElements: async () => [{ isDisplayed: async () => true }],
+      wait: async (check: () => Promise<boolean>) => {
+        expect(settings).toEqual([0]);
+        expect(await check()).toBe(true);
+        if (fail) throw failure;
+      },
+    };
+    if (fail) await expect(waitVisible(driver, null, 500)).rejects.toBe(failure);
+    else await waitVisible(driver, null, 500);
+    expect(settings).toEqual([0, 500]);
+  }
 });
