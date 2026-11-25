@@ -57,6 +57,13 @@ export function exportPlaywrightTest(s: Scenario): string {
   if (s.nodes.some(n => n.screenshot)) {
     statements.unshift('  await import("node:fs/promises").then(fs => fs.mkdir("screenshots", { recursive: true }));');
   }
-  const browser = s.settings.browser === "edge" ? "  // Edge: configure channel: 'msedge' in playwright.config.ts\n" : "";
-  return `import { test } from "@playwright/test";\n\ntest(${JSON.stringify(s.metadata.name)}, async ({ page }) => {\n${browser}${statements.join("\n")}\n});\n`;
+  const options = {
+    browserName: "chromium",
+    channel: s.settings.browser === "edge" ? "msedge" : undefined,
+    headless: s.settings.headless,
+    viewport: s.settings.viewport,
+    actionTimeout: s.settings.timeoutMs,
+    navigationTimeout: s.settings.timeoutMs,
+  };
+  return `import { test } from "@playwright/test";\n\ntest.use(${JSON.stringify(options, null, 2)});\n\ntest(${JSON.stringify(s.metadata.name)}, async ({ page }) => {\n  page.setDefaultTimeout(${s.settings.timeoutMs});\n${statements.join("\n")}\n});\n`;
 }
