@@ -127,10 +127,19 @@ impl RunnerState {
 async fn debug_control(state: State<'_, RunnerState>, command: String) -> Result<(), String> {
     if command != "STEP" && command != "CONTINUE" { return Err("Invalid debug command".into()); }
     let child = state.child.lock().map_err(|e| e.to_string())?.clone().ok_or("実行中のシナリオがありません")?;
+    tauri::async_runtime::spawn_blocking(move || send_debug_command(child, &command))
+        .await.map_err(|e| e.to_string())?
+}
+
+fn send_debug_command(child: Arc<Mutex<Child>>, command: &str) -> Result<(), String> {
+    let mut input = child.lock().map_err(|e| e.to_string())?.stdin.take()
+        .ok_or("制御入力が使用できません")?;
+    let result = input.write_all(format!("{command}\n").as_bytes()).and_then(|_| input.flush());
     let mut process = child.lock().map_err(|e| e.to_string())?;
-    let input = process.stdin.as_mut().ok_or("Missing stdin")?;
-    input.write_all(format!("{command}\n").as_bytes()).map_err(|e| e.to_string())?;
-    input.flush().map_err(|e| e.to_string())
+    if result.is_ok() && process.try_wait().map_err(|e| e.to_string())?.is_none() {
+        process.stdin = Some(input);
+    }
+    result.map_err(|e| e.to_string())
 }
 
 // Only terminate the child owned by this run, never a process selected by name.
@@ -154,19 +163,34 @@ fn force_stop(process: &mut Child) -> Result<(), String> {
 }
 
 fn stop_runner(child: Arc<Mutex<Child>>, grace: std::time::Duration) -> Result<(), String> {
-    {
+    let deadline = std::time::Instant::now() + grace;
+    let mut input = {
         let mut process = child.lock().map_err(|e| e.to_string())?;
         if process.try_wait().map_err(|e| e.to_string())?.is_some() { return Ok(()); }
-        let sent = process.stdin.as_mut().is_some_and(|input| {
-            input.write_all(b"STOP\n").and_then(|_| input.flush()).is_ok()
-        });
-        if !sent { return force_stop(&mut process); }
-    }
-    let deadline = std::time::Instant::now() + grace;
+        match process.stdin.take() {
+            Some(input) => input,
+            None => return force_stop(&mut process),
+        }
+    };
+    // The writer owns stdin, not the process lock. A blocked pipe cannot
+    // prevent the deadline loop from terminating the process.
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let sent = input.write_all(b"STOP\n").and_then(|_| input.flush()).is_ok();
+        let _ = tx.send((sent, input));
+    });
+    let mut sent_input = None;
     loop {
         {
             let mut process = child.lock().map_err(|e| e.to_string())?;
             if process.try_wait().map_err(|e| e.to_string())?.is_some() { return Ok(()); }
+            if sent_input.is_none() {
+                match rx.try_recv() {
+                    Ok((true, input)) => sent_input = Some(input),
+                    Ok((false, _)) | Err(std::sync::mpsc::TryRecvError::Disconnected) => return force_stop(&mut process),
+                    Err(std::sync::mpsc::TryRecvError::Empty) => {}
+                }
+            }
             if std::time::Instant::now() >= deadline { return force_stop(&mut process); }
         }
         std::thread::sleep(std::time::Duration::from_millis(50));
@@ -382,6 +406,13 @@ mod runner_stop_tests {
             .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
         assert!(state.publish_runner(&mut slot, child).is_err());
         assert!(slot.is_none());
+    }
+
+    #[test]
+    fn debug_command_restores_input_for_stop() {
+        let child = runner("let stepped=false; require('node:readline').createInterface({input:process.stdin}).on('line', line => { if(line === 'STEP') stepped=true; if(line === 'STOP') process.exit(stepped ? 0 : 2); }); setTimeout(() => process.exit(9), 15000);", true);
+        send_debug_command(child.clone(), "STEP").unwrap();
+        assert_stopped(child, Duration::from_secs(5), true);
     }
 
     #[test]
