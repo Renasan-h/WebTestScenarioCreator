@@ -372,10 +372,14 @@ function Editor() {
     replace(next);
   }
   const stopRequested = useRef(false);
+  const pendingStop = useRef<Promise<boolean> | null>(null);
+  const runGeneration = useRef(0);
   async function startRecording() {
     if (busy) return;
     const s = snapshot();
     recordingGraph.current = s;
+    runGeneration.current++;
+    pendingStop.current = null;
     stopRequested.current = false;
     setBusy(true); setRecording(true); setLogs([]); setMessage("操作を記録中（ブラウザを閉じるか停止してください）");
     let unlisten: (() => void) | undefined;
@@ -395,16 +399,26 @@ function Editor() {
         setLogs(ls => [...ls, e.payload]);
       });
       await invoke("run_scenario", { scenarioJson: JSON.stringify({ ...s, settings: { ...s.settings, headless: false } }), record: true });
+      if (pendingStop.current) await pendingStop.current;
       setMessage(stopRequested.current ? "記録を停止しました。シナリオを確認して保存してください。" : "記録終了。シナリオを確認して保存してください。");
-    } catch (e) { setMessage(stopRequested.current ? "記録を停止しました: " + String(e) : "記録失敗: " + String(e)); }
+    } catch (e) { if (pendingStop.current) await pendingStop.current; setMessage(stopRequested.current ? "記録を停止しました: " + String(e) : "記録失敗: " + String(e)); }
     finally { unlisten?.(); recordingGraph.current = null; setBusy(false); setRecording(false); setStopping(false); }
   }
   async function run(debug = false) {
     const s = snapshot();
     const errors = validateGraph(s);
     if (errors.length) { setMessage(errors.join(" / ")); return; }
+    runGeneration.current++;
+    pendingStop.current = null;
     stopRequested.current = false;
     let outcome: "completed" | "failed" | "cancelled" | undefined;
+    const applyOutcome = (result: "completed" | "failed" | "cancelled") => {
+      setRunOutcome(result);
+      setPausedNode(null);
+      if (result !== "completed") {
+        setNodeStatus(status => Object.fromEntries(Object.entries(status).map(([id, value]) => [id, value === "paused" || value === "running" ? result : value])));
+      }
+    };
     setBusy(true); setDebugging(debug); setPausedNode(null); setNodeStatus({}); setRunOutcome(null); setLogs([]); setMessage(debug ? "デバッグ開始中" : "実行中");
     let unlisten: (() => void) | undefined;
     try {
@@ -414,11 +428,7 @@ function Editor() {
           const event = JSON.parse(e.payload) as { type?: string; nodeId?: string; message?: string; status?: string };
           if (event.type === "run.finished" && (event.status === "completed" || event.status === "failed" || event.status === "cancelled")) {
             outcome = event.status;
-            setRunOutcome(event.status);
-            if (event.status === "cancelled") {
-              setPausedNode(null);
-              setNodeStatus(status => Object.fromEntries(Object.entries(status).map(([id, value]) => [id, value === "paused" || value === "running" ? "cancelled" : value])));
-            }
+            applyOutcome(event.status);
           } else if (event.nodeId && event.type === "node.paused") {
             setPausedNode(event.nodeId);
             setNodeStatus(status => ({ ...status, [event.nodeId!]: "paused" }));
@@ -435,8 +445,16 @@ function Editor() {
         } catch { /* non-JSON log */ }
       });
       await invoke("run_scenario", { scenarioJson: JSON.stringify(s), record: false, debug });
-      setMessage(outcome === "cancelled" || (outcome === undefined && stopRequested.current) ? "実行を停止しました" : outcome === "failed" ? "実行失敗" : "実行完了");
-    } catch (e) { setMessage(stopRequested.current ? "実行を停止しました: " + String(e) : "実行失敗: " + String(e)); }
+      if (pendingStop.current) await pendingStop.current;
+      const result = outcome ?? (stopRequested.current ? "cancelled" : "completed");
+      applyOutcome(result);
+      setMessage(result === "cancelled" ? "実行を停止しました" : result === "failed" ? "実行失敗" : "実行完了");
+    } catch (e) {
+      if (pendingStop.current) await pendingStop.current;
+      const result = outcome === "failed" ? "failed" : stopRequested.current && outcome === undefined ? "cancelled" : "failed";
+      applyOutcome(result);
+      setMessage(result === "cancelled" ? "実行を停止しました: " + String(e) : "実行失敗: " + String(e));
+    }
     finally { unlisten?.(); setBusy(false); setStopping(false); setDebugging(false); setPausedNode(null); }
   }
   async function debugCommand(command: "STEP" | "CONTINUE") {
@@ -448,10 +466,21 @@ function Editor() {
     } catch (e) { setMessage("デバッグ操作失敗: " + String(e)); }
   }
   async function stop() {
-    if (!busy || stopping) return;
+    if (!busy || stopping || pendingStop.current) return;
+    const generation = runGeneration.current;
     setStopping(true); setMessage("停止処理中");
-    try { await invoke("stop_scenario"); stopRequested.current = true; }
-    catch (e) { setMessage("停止失敗: " + String(e)); setStopping(false); }
+    const request = invoke("stop_scenario").then(() => {
+      if (runGeneration.current === generation) stopRequested.current = true;
+      return true;
+    }, e => {
+      if (runGeneration.current === generation) {
+        setMessage("停止失敗: " + String(e)); setStopping(false);
+      }
+      return false;
+    });
+    pendingStop.current = request;
+    const accepted = await request;
+    if (!accepted && pendingStop.current === request) pendingStop.current = null;
   }
   function updateSettings(patch: Partial<Scenario["settings"]>) {
     if (busy) return;
