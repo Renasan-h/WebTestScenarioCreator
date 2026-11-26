@@ -11,6 +11,14 @@
 
 ## 最新コミット情報
 
+- `b073e9b0560dae338813240d2f84883ab797dd97`: packages/engine/src/execute.ts
+- `a775680f7f0f3a8f6361e03522439386cea39e00`: tests/execute-cancellation.test.ts
+- `a83cab1a1aebcad6635931a853cdcf247abb1c99`: tests/ui/sidecar-stop.spec.ts
+- `9ab35135a210625d0ccd17073f48b040d0ac2c96`: src/App.tsx
+- `0d0b14439638bc381b451eda657b64a7068f9e00`: src/components/ScenarioDebugger.tsx
+- `c21116fbe0bbb9f0f750d73aba2929b7e5747413`: docs/SPECIFICATION.md
+- Phase 3/4/5。cancelledを実行エンジン・結果メッセージ・ログに反映、回帰テスト期待値更新と真の失敗テスト1件追加。テスト・ビルド未実行、CI未起動。次はデバッグ概要・ノード停止表示、強制停止時の状態とstopRequested競合、GUI回帰テスト、アプリ終了処理。入力例外もAbortSignal経由でcancelledとなり、終了エラーは別途扱う必要あり。
+
 - `788ce5a1af1b43a76a1b8ab5046e46bba26694df`: 記録初回navigate中STOP/EOFの実ブラウザ回帰テスト2件追加。localhost HTTP応答を未完了に保ち、リクエスト到達後に停止、終了コード0とrecorder-ready未通知を検証。外部サイト不要。失敗時は子プロセスとHTTP接続の終了を試みる。
 - Phase 3/4/5。テスト・ビルド未実行、CI未起動。次は停止専用ステータスとGUI表示、強制停止後の整合性、アプリ終了処理。ブラウザ子孫残留の直接検証は未実施。
 
