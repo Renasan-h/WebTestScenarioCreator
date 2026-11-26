@@ -7,7 +7,7 @@ export type ExecutionEvent =
   | { type: "node.started"; runId: string; nodeId: string }
   | { type: "node.completed"; runId: string; nodeId: string; durationMs: number }
   | { type: "node.failed"; runId: string; nodeId: string; message: string }
-  | { type: "run.finished"; runId: string; status: "completed" | "failed" };
+  | { type: "run.finished"; runId: string; status: "completed" | "failed" | "cancelled" };
 export type ExecuteAction = (node: ScenarioNode) => Promise<boolean | void>;
 
 export async function executeScenario(s: Scenario, action: ExecuteAction, emit: (e: ExecutionEvent) => void, runId = crypto.randomUUID(), beforeNode?: (node: ScenarioNode, notifyPaused: () => void) => Promise<void>, signal?: AbortSignal): Promise<void> {
@@ -19,7 +19,7 @@ export async function executeScenario(s: Scenario, action: ExecuteAction, emit: 
   emit({ type: "run.started", runId });
   const stopped = () => {
     if (!signal?.aborted) return false;
-    emit({ type: "run.finished", runId, status: "failed" });
+    emit({ type: "run.finished", runId, status: "cancelled" });
     return true;
   };
   while (id) {
