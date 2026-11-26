@@ -69,7 +69,7 @@ function Editor() {
     replace(fresh());
     setUndoStack([]);
     setRedoStack([]);
-    setNodeStatus({});
+    setNodeStatus({}); setRunOutcome(null);
     setLogs([]);
     try { localStorage.setItem("scenario-directory", next); } catch { /* unavailable */ }
   }
@@ -88,7 +88,8 @@ function Editor() {
   const [recording, setRecording] = useState(false);
   const [debugging, setDebugging] = useState(false);
   const [pausedNode, setPausedNode] = useState<string | null>(null);
-  const [nodeStatus, setNodeStatus] = useState<Record<string, "running" | "passed" | "failed" | "paused">>({});
+  const [runOutcome, setRunOutcome] = useState<"completed" | "failed" | "cancelled" | null>(null);
+  const [nodeStatus, setNodeStatus] = useState<Record<string, "running" | "passed" | "failed" | "paused" | "cancelled">>({});
   const recordingGraph = useRef<Scenario | null>(null);
   const [message, setMessage] = useState("準備完了");
   const [undoStack, setUndoStack] = useState<Scenario[]>([]);
@@ -330,7 +331,7 @@ function Editor() {
     replace(loaded);
     setUndoStack([]); setRedoStack([]);
     setPath(filePath);
-    setNodeStatus({});
+    setNodeStatus({}); setRunOutcome(null);
     setLogs([]);
     setMessage("読み込み完了: " + filePath);
   }
@@ -404,7 +405,7 @@ function Editor() {
     if (errors.length) { setMessage(errors.join(" / ")); return; }
     stopRequested.current = false;
     let outcome: "completed" | "failed" | "cancelled" | undefined;
-    setBusy(true); setDebugging(debug); setPausedNode(null); setNodeStatus({}); setLogs([]); setMessage(debug ? "デバッグ開始中" : "実行中");
+    setBusy(true); setDebugging(debug); setPausedNode(null); setNodeStatus({}); setRunOutcome(null); setLogs([]); setMessage(debug ? "デバッグ開始中" : "実行中");
     let unlisten: (() => void) | undefined;
     try {
       unlisten = await listen<string>("scenario-log", e => {
@@ -413,6 +414,11 @@ function Editor() {
           const event = JSON.parse(e.payload) as { type?: string; nodeId?: string; message?: string; status?: string };
           if (event.type === "run.finished" && (event.status === "completed" || event.status === "failed" || event.status === "cancelled")) {
             outcome = event.status;
+            setRunOutcome(event.status);
+            if (event.status === "cancelled") {
+              setPausedNode(null);
+              setNodeStatus(status => Object.fromEntries(Object.entries(status).map(([id, value]) => [id, value === "paused" || value === "running" ? "cancelled" : value])));
+            }
           } else if (event.nodeId && event.type === "node.paused") {
             setPausedNode(event.nodeId);
             setNodeStatus(status => ({ ...status, [event.nodeId!]: "paused" }));
@@ -434,7 +440,7 @@ function Editor() {
     finally { unlisten?.(); setBusy(false); setStopping(false); setDebugging(false); setPausedNode(null); }
   }
   async function debugCommand(command: "STEP" | "CONTINUE") {
-    if (!debugging || !pausedNode) return;
+    if (!debugging || !pausedNode || stopping) return;
     try {
       setPausedNode(null);
       await invoke("debug_control", { command });
@@ -464,7 +470,7 @@ function Editor() {
   }, [logHeight]);
   const displayNodes = nodes.map(n => ({ ...n, className: nodeStatus[n.id] ? "debug-node debug-node--" + nodeStatus[n.id] : undefined }));
   function createScenario() {
-    replace(fresh()); setPath(null); setUndoStack([]); setRedoStack([]); setNodeStatus({}); setLogs([]); setScreen("editor"); setMessage("新しいシナリオ");
+    replace(fresh()); setPath(null); setUndoStack([]); setRedoStack([]); setNodeStatus({}); setRunOutcome(null); setLogs([]); setScreen("editor"); setMessage("新しいシナリオ");
   }
   return <div className="app" data-theme={theme}>
     <header className="studio-header">
@@ -505,7 +511,7 @@ function Editor() {
         <button className="theme-icon-button" aria-label={theme === "dark" ? "ライトモードに切り替え" : "ダークモードに切り替え"} title={theme === "dark" ? "ライトモード" : "ダークモード"} onClick={() => changeTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? "☀" : "☾"}</button>
       </div>
     </header>
-    {screen === "home" ? <ScenarioHome directory={directory} onDirectoryChange={changeDirectory} selectedPath={path} scenario={scenario} busy={busy} message={message} logs={logs} errors={validateGraph(snapshot())} onSelect={filePath => { if (!busy) void openScenarioAt(filePath).catch(e => setMessage("読み込み失敗: " + String(e))); }} onNew={createScenario} onOpen={() => { void load(); }} onEdit={() => setScreen("editor")} onDebug={() => setScreen("debug")} onRun={() => { void run(false); }} onStop={() => { void stop(); }}/> : screen === "debug" ? <ScenarioDebugger scenario={snapshot()} nodes={nodes} edges={edges} nodeStatus={nodeStatus} pausedNode={pausedNode} busy={busy} debugging={debugging} stopping={stopping} logs={logs} message={message} theme={theme} onStart={() => { void run(true); }} onStep={() => { void debugCommand("STEP"); }} onContinue={() => { void debugCommand("CONTINUE"); }} onStop={() => { void stop(); }} onEdit={() => setScreen("editor")} onHome={() => setScreen("home")}/> : <>
+    {screen === "home" ? <ScenarioHome directory={directory} onDirectoryChange={changeDirectory} selectedPath={path} scenario={scenario} busy={busy} message={message} logs={logs} errors={validateGraph(snapshot())} onSelect={filePath => { if (!busy) void openScenarioAt(filePath).catch(e => setMessage("読み込み失敗: " + String(e))); }} onNew={createScenario} onOpen={() => { void load(); }} onEdit={() => setScreen("editor")} onDebug={() => setScreen("debug")} onRun={() => { void run(false); }} onStop={() => { void stop(); }}/> : screen === "debug" ? <ScenarioDebugger scenario={snapshot()} nodes={nodes} edges={edges} nodeStatus={nodeStatus} runOutcome={runOutcome} pausedNode={pausedNode} busy={busy} debugging={debugging} stopping={stopping} logs={logs} message={message} theme={theme} onStart={() => { void run(true); }} onStep={() => { void debugCommand("STEP"); }} onContinue={() => { void debugCommand("CONTINUE"); }} onStop={() => { void stop(); }} onEdit={() => setScreen("editor")} onHome={() => setScreen("home")}/> : <>
     <main className="editor-layout">
       <aside className="sidebar"><div className="panel-kicker">WORKSPACE</div><h3>シナリオ</h3>
         <input aria-label="シナリオ名" value={scenario.metadata.name} onChange={e => { checkpoint(); setScenario(s => ({ ...s, metadata: { ...s.metadata, name: e.target.value } })); }}/>
