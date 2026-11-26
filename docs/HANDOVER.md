@@ -11,6 +11,11 @@
 
 ## 最新コミット情報
 
+- `ff3bf96d13fb1825118f5b69839591705caf2ace`: openBrowser初期化失敗時にbrowser.close、終了も失敗した場合はAggregateErrorで両例外保持。
+- `f26f263a123a1d2c6e0bb04014889f2093d77a08`: sidecar起動直後STOP/EOF回帰テスト2件追加、既存一時停止2件維持。シナリオ送信直後に停止を送る方式でlaunch内部の厳密なタイミングは保証しない。
+- `1be4ef1ad280591f999762c9ad20d30b37903345`: 仕様更新。
+- Phase 3/4/5。テスト・ビルド未実行、CI未起動。次は初期化失敗の模擬単体テスト、記録初回navigate中停止の回帰テスト、GUI停止状態、アプリ終了処理。ブラウザclose失敗・ハング時の完全な後始末は未保証。
+
 - `a4cff2d2b18bc73c8dc7c2ddfb23c12b1db8ae44`: sidecar制御ループをブラウザ起動前に統合、STOP/EOFを保持、起動完了後に中断、記録初回navigate中もclose可能。入力例外も停止へ。記録中断時の操作例外を抑制、detachをfinallyで実行。
 - `318686f97b0fa070002a0d78f6888c36eb82468a`: 仕様更新。
 - Phase 3/4/5。テスト・ビルド未実行、CI未起動。次は起動直後STOP/EOFと記録初回navigate中の回帰テスト、openBrowser途中失敗時の後始末、GUI停止状態、アプリ終了処理。launch自体は中断不可、Rust強制停止に依存する場合あり。
