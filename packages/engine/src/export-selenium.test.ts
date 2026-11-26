@@ -476,7 +476,10 @@ describe("multi-language exports", () => {
       expect(individual.indexOf(".click()", individual.indexOf(override))).toBeGreaterThan(individual.indexOf(override));
       expect(individual.lastIndexOf(restore)).toBeGreaterThan(individual.indexOf(".click()"));
       expect(common).not.toContain(override);
-      expect(common.split(restore)).toHaveLength(2);
+      const baseline = exportSeleniumLanguage(base, language);
+      // The generated helper may restore the implicit timeout as well.
+      // A click without an override must not introduce another restoration.
+      expect(common.split(restore)).toHaveLength(baseline.split(restore).length);
       expect(common).toContain(".click()");
     }
   });
