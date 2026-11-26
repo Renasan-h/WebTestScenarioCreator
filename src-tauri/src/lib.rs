@@ -187,12 +187,26 @@ async fn run_scenario(
         command.arg("--import").arg("tsx").arg("sidecar/main.ts").arg("--stdin");
         if record.unwrap_or(false) { command.arg("--record"); }
         if debug.unwrap_or(false) { command.arg("--debug"); }
-        let child = command.current_dir(root)
+        let mut child = command.current_dir(root)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
             .map_err(|e| format!("Node runner could not start: {e}"))?;
+        // Publish only after the initial JSON line is sent, so STOP cannot precede it.
+        let initial = child.stdin.as_mut().ok_or_else(|| "Missing stdin".to_string())
+            .and_then(|input| {
+                input.write_all(scenario_json.as_bytes())
+                    .and_then(|_| input.write_all(b"\n"))
+                    .and_then(|_| input.flush())
+                    .map_err(|e| e.to_string())
+            });
+        if let Err(error) = initial {
+            if let Err(cleanup) = force_stop(&mut child) {
+                eprintln!("Runner initialization cleanup failed: {cleanup}");
+            }
+            return Err(error);
+        }
         let child = Arc::new(Mutex::new(child));
         *active = Some(child.clone());
         child
@@ -204,10 +218,6 @@ async fn run_scenario(
         move || -> Result<(), String> {
             let (stdout, stderr) = {
                 let mut process = child.lock().map_err(|e| e.to_string())?;
-                let input = process.stdin.as_mut().ok_or("Missing stdin")?;
-                input.write_all(scenario_json.as_bytes()).map_err(|e| e.to_string())?;
-                input.write_all(b"\n").map_err(|e| e.to_string())?;
-                input.flush().map_err(|e| e.to_string())?;
                 (process.stdout.take().ok_or("Missing stdout")?,
                  process.stderr.take().ok_or("Missing stderr")?)
             };
