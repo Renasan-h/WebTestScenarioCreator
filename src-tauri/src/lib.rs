@@ -1,7 +1,7 @@
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
-use tauri::{Emitter, State};
+use tauri::{Emitter, Manager, State};
 
 
 #[derive(serde::Serialize)]
@@ -79,6 +79,7 @@ async fn write_scenario_file(path: String, content: String) -> Result<(), String
 #[derive(Default)]
 struct RunnerState {
     child: Mutex<Option<Arc<Mutex<Child>>>>,
+    shutting_down: std::sync::atomic::AtomicBool,
 }
 
 #[tauri::command]
@@ -150,6 +151,7 @@ async fn run_scenario(
     // Development-only: the portable release will require a bundled runtime.
     let child_slot = {
         let mut active = state.child.lock().map_err(|e| e.to_string())?;
+        if state.shutting_down.load(std::sync::atomic::Ordering::SeqCst) { return Err("アプリ終了処理中です".into()); }
         if active.is_some() { return Err("別のシナリオが実行中です".into()); }
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
         let mut command = Command::new("node");
@@ -201,6 +203,12 @@ async fn run_scenario(
         }
     }).await.map_err(|e| e.to_string());
 
+    // A failed setup or reader task must not leave a live runner untracked.
+    if !matches!(&result, Ok(Ok(()))) {
+        if let Err(error) = stop_runner(child_slot.clone(), std::time::Duration::from_secs(5)) {
+            eprintln!("Runner cleanup failed: {error}");
+        }
+    }
     // Clear only our own process, never a newer run.
     let mut active = state.child.lock().map_err(|e| e.to_string())?;
     if active.as_ref().is_some_and(|current| Arc::ptr_eq(current, &child_slot)) {
@@ -216,8 +224,32 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![run_scenario, stop_scenario, debug_control, list_scenario_files, read_scenario_file, write_scenario_file])
-        .run(tauri::generate_context!())
-        .expect("error while running scenario studio");
+        .build(tauri::generate_context!())
+        .expect("error while building scenario studio")
+        .run(|app, event| {
+            if let tauri::RunEvent::ExitRequested { api, .. } = event {
+                let state = app.state::<RunnerState>();
+                // The second exit request is issued only after cleanup completes.
+                if state.shutting_down.load(std::sync::atomic::Ordering::SeqCst) {
+                    api.prevent_exit();
+                    return;
+                }
+                api.prevent_exit();
+                state.shutting_down.store(true, std::sync::atomic::Ordering::SeqCst);
+                let app = app.clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    let state = app.state::<RunnerState>();
+                    let child = state.child.lock().map(|slot| slot.clone()).map_err(|e| e.to_string());
+                    let result = child.and_then(|child| match child {
+                        Some(child) => stop_runner(child, std::time::Duration::from_secs(5)),
+                        None => Ok(()),
+                    });
+                    if let Err(error) = result { eprintln!("Shutdown cleanup failed: {error}"); }
+                    // AppHandle::exit terminates the application even if exit events are intercepted.
+                    app.exit(0);
+                });
+            }
+        });
 }
 
 #[cfg(test)]
