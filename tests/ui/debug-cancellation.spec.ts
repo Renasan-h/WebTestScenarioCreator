@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-for (const active of ["paused", "running"] as const) {
-  test("debug cancellation preserves completed nodes and marks " + active + " node", async ({ page }) => {
-    await page.addInitScript(({ active }) => {
+for (const mode of ["paused", "running", "forced", "stop-failed", "natural"] as const) {
+  const active = mode === "paused" ? "paused" : "running";
+  test("debug cancellation preserves completed nodes and marks " + mode + " node", async ({ page }) => {
+    await page.addInitScript(({ active, mode }) => {
       const fixture = {
         schemaVersion: "1.0",
         metadata: { id: "stop", name: "停止確認", createdAt: "", updatedAt: "" },
@@ -20,6 +21,7 @@ for (const active of ["paused", "running"] as const) {
       let nextId = 0;
       let listener: number | undefined;
       let finish: (() => void) | undefined;
+      let fail: ((reason: Error) => void) | undefined;
       const emit = (type: string, extra: object = {}) => {
         if (listener !== undefined) callbacks.get(listener)?.({ event: "scenario-log", id: listener, payload: JSON.stringify({ type, runId: "test", ...extra }) });
       };
@@ -32,8 +34,9 @@ for (const active of ["paused", "running"] as const) {
           if (command === "plugin:event|listen") { listener = args?.handler; return 1; }
           if (command === "plugin:event|unlisten") { listener = undefined; return; }
           if (command === "run_scenario") {
-            return new Promise<void>(resolve => {
+            return new Promise<void>((resolve, reject) => {
               finish = resolve;
+              fail = reject;
               emit("run.started");
               emit("node.started", { nodeId: "start" });
               emit("node.completed", { nodeId: "start", durationMs: 1 });
@@ -41,6 +44,19 @@ for (const active of ["paused", "running"] as const) {
             });
           }
           if (command === "stop_scenario") {
+            if (mode === "forced" || mode === "stop-failed" || mode === "natural") {
+              if (mode === "natural") {
+                emit("node.completed", { nodeId: "wait", durationMs: 1 });
+                emit("node.started", { nodeId: "end" });
+                emit("node.completed", { nodeId: "end", durationMs: 1 });
+                emit("run.finished", { status: "completed" });
+                finish?.();
+              } else fail?.(new Error("Runner exited"));
+              await new Promise<void>((resolve, reject) => {
+                Object.defineProperty(window, "__releaseStop", { configurable: true, value: () => mode === "stop-failed" ? reject(new Error("Stop failed")) : resolve() });
+              });
+              return;
+            }
             emit("run.finished", { status: "cancelled" });
             finish?.();
             return;
@@ -49,7 +65,7 @@ for (const active of ["paused", "running"] as const) {
         },
       }, configurable: true });
       Object.defineProperty(window, "__TAURI_EVENT_PLUGIN_INTERNALS__", { value: { unregisterListener: () => {} }, configurable: true });
-    }, { active });
+    }, { active, mode });
     await page.goto("/");
     await page.getByRole("complementary", { name: "シナリオ一覧" }).getByRole("button", { name: "停止確認" }).click();
     await page.getByRole("button", { name: "✎ 編集する", exact: true }).click();
@@ -57,6 +73,25 @@ for (const active of ["paused", "running"] as const) {
     await page.getByRole("button", { name: "▶ デバッグ開始" }).click();
     await expect(page.locator(".debug-step--" + active)).toHaveCount(1);
     await page.getByRole("button", { name: "■ 停止", exact: true }).click();
+    if (mode === "forced" || mode === "stop-failed" || mode === "natural") {
+      await expect.poll(() => page.evaluate(() => typeof (window as unknown as { __releaseStop?: () => void }).__releaseStop)).toBe("function");
+      await expect(page.getByRole("button", { name: "▶ デバッグ開始" })).toBeDisabled();
+      await page.evaluate(() => (window as unknown as { __releaseStop: () => void }).__releaseStop());
+      await expect(page.getByRole("button", { name: "▶ デバッグ開始" })).toBeEnabled();
+      if (mode === "natural") {
+        await expect(page.locator(".debug-summary > div").first()).toContainText("完了");
+        await expect(page.locator(".debug-step--passed")).toHaveCount(3);
+        await expect(page.locator(".debug-step--cancelled")).toHaveCount(0);
+        return;
+      }
+      if (mode === "stop-failed") {
+        await expect(page.locator(".debug-summary > div").first()).toContainText("失敗");
+        await expect(page.locator(".debug-step--failed")).toHaveCount(1);
+        await expect(page.locator(".debug-step--passed")).toHaveCount(1);
+        await expect(page.locator(".debug-step--cancelled")).toHaveCount(0);
+        return;
+      }
+    }
     await expect(page.locator(".debug-summary > div").first()).toContainText("停止");
     await expect(page.locator(".debug-step--passed")).toHaveCount(1);
     await expect(page.locator(".debug-step--cancelled")).toContainText("■ 停止");
@@ -64,7 +99,7 @@ for (const active of ["paused", "running"] as const) {
     await expect(page.locator(".debug-step--failed")).toHaveCount(0);
     await expect(page.locator(".debug-step").last()).toContainText("未実行");
     await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "33");
-    await expect(page.getByRole("log", { name: "デバッグログ" })).toContainText("run.finished / cancelled");
+    if (mode !== "forced") await expect(page.getByRole("log", { name: "デバッグログ" })).toContainText("run.finished / cancelled");
     await expect(page.getByRole("button", { name: "▶ デバッグ開始" })).toBeEnabled();
     await expect(page.getByRole("button", { name: "⏭ 次のステップ" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "▷ 続行" })).toBeDisabled();
