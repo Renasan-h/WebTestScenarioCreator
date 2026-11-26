@@ -15,7 +15,8 @@ const scenario = {
 };
 
 for (const mode of ["STOP", "EOF"] as const) {
-  test("sidecar debug stops on " + mode, async () => {
+  for (const timing of ["startup", "paused"] as const) {
+  test("sidecar debug stops on " + mode + " at " + timing, async () => {
     test.setTimeout(45000);
     const child = spawn(process.execPath, ["--import", "tsx", "sidecar/main.ts", "--stdin", "--debug"], {
       stdio: ["pipe", "pipe", "pipe"], windowsHide: true,
@@ -36,11 +37,14 @@ for (const mode of ["STOP", "EOF"] as const) {
     });
     try {
       child.stdin.write(JSON.stringify(scenario) + "\n");
-      await expect.poll(() => events.some(e => e.type === "node.paused" && e.nodeId === "start"), { timeout: 20000 }).toBe(true);
+      if (timing === "paused") {
+        await expect.poll(() => events.some(e => e.type === "node.paused" && e.nodeId === "start"), { timeout: 20000 }).toBe(true);
+      }
       if (mode === "STOP") child.stdin.write("STOP\n");
       else child.stdin.end();
-      await expect.poll(() => child.exitCode !== null || child.signalCode !== null, { timeout: 10000 }).toBe(true);
+      await expect.poll(() => child.exitCode !== null || child.signalCode !== null, { timeout: 20000 }).toBe(true);
       const result = await exited;
+      if (timing === "startup") expect(events.filter(e => e.type === "node.paused")).toEqual([]);
       expect(inputError).toBeUndefined();
       expect(result, stderr).toEqual({ code: 0, signal: null });
       expect(events.filter(e => e.type === "run.finished")).toEqual([expect.objectContaining({ status: "failed" })]);
@@ -58,4 +62,5 @@ for (const mode of ["STOP", "EOF"] as const) {
       child.stderr.destroy();
     }
   });
+}
 }
