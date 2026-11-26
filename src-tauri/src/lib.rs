@@ -163,6 +163,12 @@ fn force_stop(process: &mut Child) -> Result<(), String> {
 }
 
 fn stop_runner(child: Arc<Mutex<Child>>, grace: std::time::Duration) -> Result<(), String> {
+    stop_runner_with_writer(child, grace, |input| input.write_all(b"STOP\n").and_then(|_| input.flush()))
+}
+
+fn stop_runner_with_writer<F>(child: Arc<Mutex<Child>>, grace: std::time::Duration, write_stop: F) -> Result<(), String>
+where F: FnOnce(&mut std::process::ChildStdin) -> std::io::Result<()> + Send + 'static {
+
     let deadline = std::time::Instant::now() + grace;
     let mut input = {
         let mut process = child.lock().map_err(|e| e.to_string())?;
@@ -176,7 +182,7 @@ fn stop_runner(child: Arc<Mutex<Child>>, grace: std::time::Duration) -> Result<(
     // prevent the deadline loop from terminating the process.
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
-        let sent = input.write_all(b"STOP\n").and_then(|_| input.flush()).is_ok();
+        let sent = write_stop(&mut input).is_ok();
         let _ = tx.send((sent, input));
     });
     let mut sent_input = None;
@@ -443,6 +449,41 @@ mod runner_stop_tests {
         stopped.expect("stop failed");
         assert!(elapsed < Duration::from_secs(10), "stop waited for the child timer");
         assert!(released, "blocked writer did not return an error");
+        assert!(!status.success());
+    }
+
+    #[test]
+    fn stop_writer_timeout_forces_unresponsive_runner() {
+        let child = runner("setTimeout(() => process.exit(0), 15000);", true);
+        let (done_tx, done_rx) = std::sync::mpsc::channel();
+        let grace = Duration::from_millis(300);
+        let start = Instant::now();
+        let result = stop_runner_with_writer(child.clone(), grace, move |input| {
+            // Substitute a large write for the short STOP line to exercise
+            // the same writer thread and deadline with a saturated OS pipe.
+            let write = input.write_all(&vec![b'x'; 8 * 1024 * 1024]);
+            let _ = done_tx.send(write.is_err());
+            write
+        });
+        let elapsed = start.elapsed();
+        let released = done_rx.recv_timeout(Duration::from_secs(3));
+        let status = {
+            let mut process = child.lock().unwrap();
+            let deadline = Instant::now() + Duration::from_secs(3);
+            loop {
+                if let Some(status) = process.try_wait().unwrap() { break status; }
+                if Instant::now() >= deadline {
+                    let _ = process.kill();
+                    let _ = process.wait();
+                    panic!("runner remained alive after stop");
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
+        };
+        result.expect("stop failed");
+        assert!(elapsed >= grace, "stop did not wait for the writer deadline");
+        assert!(elapsed < Duration::from_secs(10), "stop waited for the child timer");
+        assert_eq!(released.unwrap(), true, "writer did not report a broken pipe");
         assert!(!status.success());
     }
 
