@@ -100,24 +100,16 @@ impl RunnerState {
         } else { Ok(()) }
     }
 
-    // Caller holds the slot lock across initialization and publication.
-    fn publish_runner(&self, active: &mut Option<Arc<Mutex<Child>>>, mut child: Child, scenario_json: &str) -> Result<Arc<Mutex<Child>>, String> {
-        let initial = child.stdin.as_mut().ok_or_else(|| "Missing stdin".to_string())
-            .and_then(|input| {
-                input.write_all(scenario_json.as_bytes())
-                    .and_then(|_| input.write_all(b"\n"))
-                    .and_then(|_| input.flush())
-                    .map_err(|e| e.to_string())
-            });
-        if let Err(error) = initial {
-            if let Err(cleanup) = force_stop(&mut child) {
-                eprintln!("Runner initialization cleanup failed: {cleanup}");
-            }
-            return Err(error);
-        }
+    // Publish the process with stdin detached: a concurrent stop can kill it
+    // without waiting for the initial write, and cannot send STOP before JSON.
+    fn publish_runner(&self, active: &mut Option<Arc<Mutex<Child>>>, mut child: Child) -> Result<(Arc<Mutex<Child>>, std::process::ChildStdin), String> {
+        let Some(input) = child.stdin.take() else {
+            if let Err(error) = force_stop(&mut child) { eprintln!("Runner initialization cleanup failed: {error}"); }
+            return Err("Missing stdin".into());
+        };
         let child = Arc::new(Mutex::new(child));
         *active = Some(child.clone());
-        Ok(child)
+        Ok((child, input))
     }
 
     fn cleanup_for_exit(&self, grace: std::time::Duration) -> Result<(), String> {
@@ -198,7 +190,7 @@ async fn run_scenario(
     debug: Option<bool>,
 ) -> Result<(), String> {
     // Development-only: the portable release will require a bundled runtime.
-    let child_slot = {
+    let (child_slot, mut initial_input) = {
         let mut active = state.child.lock().map_err(|e| e.to_string())?;
         state.ensure_can_start()?;
         if active.is_some() { return Err("別のシナリオが実行中です".into()); }
@@ -213,7 +205,7 @@ async fn run_scenario(
             .stderr(Stdio::piped())
             .spawn()
             .map_err(|e| format!("Node runner could not start: {e}"))?;
-        state.publish_runner(&mut active, child, &scenario_json)?
+        state.publish_runner(&mut active, child)?
     };
 
     let result = tauri::async_runtime::spawn_blocking({
@@ -234,6 +226,19 @@ async fn run_scenario(
             let errors = std::thread::spawn(move || {
                 BufReader::new(stderr).lines().map_while(Result::ok).collect::<Vec<_>>().join("\n")
             });
+            let initial = initial_input.write_all(scenario_json.as_bytes())
+                .and_then(|_| initial_input.write_all(b"\n"))
+                .and_then(|_| initial_input.flush());
+            {
+                let mut process = child.lock().map_err(|e| e.to_string())?;
+                if let Err(error) = initial {
+                    let _ = force_stop(&mut process);
+                    return Err(error.to_string());
+                }
+                if process.try_wait().map_err(|e| e.to_string())?.is_none() {
+                    process.stdin = Some(initial_input);
+                }
+            }
             let status = loop {
                 let polled = child.lock().map_err(|e| e.to_string())?.try_wait().map_err(|e| e.to_string())?;
                 if let Some(status) = polled { break status; }
@@ -344,25 +349,29 @@ mod runner_stop_tests {
     }
 
     #[test]
-    fn initial_json_precedes_concurrent_stop() {
-        let state = Arc::new(RunnerState::default());
+    fn initial_json_precedes_stop_after_input_restored() {
+        let state = RunnerState::default();
         let mut slot = state.child.lock().unwrap();
         let child = Command::new("node")
             .args(["-e", "let first=true; require('node:readline').createInterface({input:process.stdin}).on('line', line => { if(first){first=false; try { if(JSON.parse(line).name !== '日本語') process.exit(2); } catch { process.exit(3); } } else { process.exit(line === 'STOP' ? 0 : 4); } }); setTimeout(() => process.exit(9), 15000);"])
-            .stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null())
-            .spawn().unwrap();
-        let other = state.clone();
-        let (ready_tx, ready_rx) = std::sync::mpsc::channel();
-        let stopper = std::thread::spawn(move || {
-            ready_tx.send(()).unwrap();
-            let child = other.child.lock().unwrap().clone().expect("runner not published");
-            stop_runner(child, Duration::from_secs(5))
-        });
-        ready_rx.recv_timeout(Duration::from_secs(3)).unwrap();
-        let child = state.publish_runner(&mut slot, child, r#"{"name":"日本語"}"#).unwrap();
+            .stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
+        let (child, mut input) = state.publish_runner(&mut slot, child).unwrap();
         drop(slot);
-        stopper.join().unwrap().unwrap();
-        assert!(child.lock().unwrap().try_wait().unwrap().unwrap().success());
+        input.write_all("{\"name\":\"日本語\"}\n".as_bytes()).unwrap();
+        input.flush().unwrap();
+        child.lock().unwrap().stdin = Some(input);
+        assert_stopped(child, Duration::from_secs(5), true);
+    }
+
+    #[test]
+    fn stop_during_initial_write_can_force_runner_without_stdin() {
+        let state = RunnerState::default();
+        let mut slot = state.child.lock().unwrap();
+        let child = Command::new("node").args(["-e", "setTimeout(() => process.exit(0), 15000);"])
+            .stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
+        let (child, _input) = state.publish_runner(&mut slot, child).unwrap();
+        drop(slot);
+        assert_stopped(child, Duration::from_secs(5), false);
     }
 
     #[test]
@@ -371,7 +380,7 @@ mod runner_stop_tests {
         let mut slot = state.child.lock().unwrap();
         let child = Command::new("node").args(["-e", "setTimeout(() => process.exit(0), 15000);"])
             .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
-        assert!(state.publish_runner(&mut slot, child, "{}").is_err());
+        assert!(state.publish_runner(&mut slot, child).is_err());
         assert!(slot.is_none());
     }
 
