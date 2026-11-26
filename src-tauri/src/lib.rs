@@ -79,6 +79,7 @@ async fn write_scenario_file(path: String, content: String) -> Result<(), String
 #[derive(Default)]
 struct RunnerState {
     child: Mutex<Option<Arc<Mutex<Child>>>>,
+    stop_gate: Arc<Mutex<()>>,
     shutting_down: std::sync::atomic::AtomicBool,
     shutdown_complete: std::sync::atomic::AtomicBool,
 }
@@ -115,7 +116,7 @@ impl RunnerState {
     fn cleanup_for_exit(&self, grace: std::time::Duration) -> Result<(), String> {
         let child = self.child.lock().map(|slot| slot.clone()).map_err(|e| e.to_string());
         let result = child.and_then(|child| match child {
-            Some(child) => stop_runner(child, grace),
+            Some(child) => serialized_stop(&self.stop_gate, child, grace),
             None => Ok(()),
         });
         self.shutdown_complete.store(true, std::sync::atomic::Ordering::SeqCst);
@@ -203,11 +204,18 @@ where F: FnOnce(&mut std::process::ChildStdin) -> std::io::Result<()> + Send + '
     }
 }
 
+// Serialize all stop paths without holding the active-slot or child lock.
+fn serialized_stop(gate: &Mutex<()>, child: Arc<Mutex<Child>>, grace: std::time::Duration) -> Result<(), String> {
+    let _guard = gate.lock().map_err(|e| e.to_string())?;
+    stop_runner(child, grace)
+}
+
 #[tauri::command]
 async fn stop_scenario(state: State<'_, RunnerState>) -> Result<(), String> {
     let child = state.child.lock().map_err(|e| e.to_string())?.clone()
         .ok_or("実行中のシナリオがありません")?;
-    tauri::async_runtime::spawn_blocking(move || stop_runner(child, std::time::Duration::from_secs(5)))
+    let gate = state.stop_gate.clone();
+    tauri::async_runtime::spawn_blocking(move || serialized_stop(&gate, child, std::time::Duration::from_secs(5)))
         .await.map_err(|e| e.to_string())?
 }
 
@@ -283,8 +291,12 @@ async fn run_scenario(
 
     // A failed setup or reader task must not leave a live runner untracked.
     if !matches!(&result, Ok(Ok(()))) {
-        if let Err(error) = stop_runner(child_slot.clone(), std::time::Duration::from_secs(5)) {
-            eprintln!("Runner cleanup failed: {error}");
+        let gate = state.stop_gate.clone();
+        let child = child_slot.clone();
+        match tauri::async_runtime::spawn_blocking(move || serialized_stop(&gate, child, std::time::Duration::from_secs(5))).await {
+            Ok(Ok(())) => {}
+            Ok(Err(error)) => eprintln!("Runner cleanup failed: {error}"),
+            Err(error) => eprintln!("Runner cleanup task failed: {error}"),
         }
     }
     // Clear only our own process, never a newer run.
@@ -492,6 +504,29 @@ mod runner_stop_tests {
         let child = runner("let stepped=false; require('node:readline').createInterface({input:process.stdin}).on('line', line => { if(line === 'STEP') stepped=true; if(line === 'STOP') process.exit(stepped ? 0 : 2); }); setTimeout(() => process.exit(9), 15000);", true);
         send_debug_command(child.clone(), "STEP").unwrap();
         assert_stopped(child, Duration::from_secs(5), true);
+    }
+
+    #[test]
+    fn overlapping_stop_and_shutdown_preserve_graceful_exit() {
+        let state = Arc::new(RunnerState::default());
+        let child = runner("require('node:readline').createInterface({input:process.stdin}).on('line', line => { if(line === 'STOP') setTimeout(() => process.exit(0), 500); }); setTimeout(() => process.exit(9), 15000);", true);
+        *state.child.lock().unwrap() = Some(child.clone());
+        let other = state.clone();
+        let target = child.clone();
+        let first = std::thread::spawn(move || serialized_stop(&other.stop_gate, target, Duration::from_secs(5)));
+        let deadline = Instant::now() + Duration::from_secs(3);
+        let detached = loop {
+            if child.lock().unwrap().stdin.is_none() { break true; }
+            if Instant::now() >= deadline { break false; }
+            std::thread::sleep(Duration::from_millis(10));
+        };
+        assert_eq!(state.request_exit(), ExitDecision::Begin);
+        let second = state.cleanup_for_exit(Duration::from_secs(5));
+        first.join().unwrap().unwrap();
+        second.unwrap();
+        assert!(detached);
+        assert!(child.lock().unwrap().try_wait().unwrap().unwrap().success());
+        assert_eq!(state.request_exit(), ExitDecision::Allow);
     }
 
     #[test]
