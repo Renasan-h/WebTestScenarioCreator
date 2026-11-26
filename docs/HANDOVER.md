@@ -11,6 +11,9 @@
 
 ## 最新コミット情報
 
+- `88123822a0051de7766614bb46f6abd4b4850f4b`: openBrowserのVitest模擬テスト6件追加。正常初期化、context/page/timeout設定失敗、初期化とclose両方失敗、launch失敗を検証。実ブラウザ不要。
+- Phase 3/4/5。テスト・ビルド未実行、CI未起動。次は記録初回navigate中STOP/EOFの回帰テスト、停止専用ステータス、GUI停止状態、アプリ終了処理。実ブラウザの残留・closeハングは模擬テスト対象外。
+
 - `ff3bf96d13fb1825118f5b69839591705caf2ace`: openBrowser初期化失敗時にbrowser.close、終了も失敗した場合はAggregateErrorで両例外保持。
 - `f26f263a123a1d2c6e0bb04014889f2093d77a08`: sidecar起動直後STOP/EOF回帰テスト2件追加、既存一時停止2件維持。シナリオ送信直後に停止を送る方式でlaunch内部の厳密なタイミングは保証しない。
 - `1be4ef1ad280591f999762c9ad20d30b37903345`: 仕様更新。
