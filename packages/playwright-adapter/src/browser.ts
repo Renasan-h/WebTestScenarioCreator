@@ -15,10 +15,19 @@ export async function openBrowser(s: Scenario): Promise<{ browser: Browser; page
   const browser = await chromium.launch(s.settings.browser === "edge"
     ? { channel: "msedge", headless: s.settings.headless }
     : { headless: s.settings.headless, executablePath: process.env.SCENARIO_CHROMIUM_PATH || undefined });
-  const context = await browser.newContext({ viewport: s.settings.viewport });
-  const page = await context.newPage();
-  page.setDefaultTimeout(s.settings.timeoutMs);
-  return { browser, page };
+  try {
+    const context = await browser.newContext({ viewport: s.settings.viewport });
+    const page = await context.newPage();
+    page.setDefaultTimeout(s.settings.timeoutMs);
+    return { browser, page };
+  } catch (error) {
+    try {
+      await browser.close();
+    } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], "Browser initialization and cleanup failed");
+    }
+    throw error;
+  }
 }
 export async function runAction(page: Page, node: ScenarioNode): Promise<boolean | void> {
   let conditionResult: boolean | undefined;
