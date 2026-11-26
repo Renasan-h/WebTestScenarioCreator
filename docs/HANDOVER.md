@@ -11,6 +11,10 @@
 
 ## 最新コミット情報
 
+- `a4cff2d2b18bc73c8dc7c2ddfb23c12b1db8ae44`: sidecar制御ループをブラウザ起動前に統合、STOP/EOFを保持、起動完了後に中断、記録初回navigate中もclose可能。入力例外も停止へ。記録中断時の操作例外を抑制、detachをfinallyで実行。
+- `318686f97b0fa070002a0d78f6888c36eb82468a`: 仕様更新。
+- Phase 3/4/5。テスト・ビルド未実行、CI未起動。次は起動直後STOP/EOFと記録初回navigate中の回帰テスト、openBrowser途中失敗時の後始末、GUI停止状態、アプリ終了処理。launch自体は中断不可、Rust強制停止に依存する場合あり。
+
 - `f012260bff5446a80e277932836a9d1906509bc4`: sidecar実プロセスとChromiumを使うPlaywright回帰テスト2件追加。デバッグ開始ノード一時停止中にSTOP/EOF、終了コード0、failed終了イベント1件、ノード実行なしを検証。Windows失敗時はPID指定taskkillで後始末を試みる。
 - ユーザーからRun workflow表示確認あり。非表示問題解決。CI未起動、手動のみ維持。
 - Phase 3/4/5。テスト・ビルド未実行。次は起動中の停止、記録モードEOF回帰テスト、制御入力例外、GUI停止状態、アプリ終了処理。親先行終了時や非Windowsの子孫後始末、実ブラウザ動作は未検証。
