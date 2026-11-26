@@ -28,9 +28,16 @@ describe("executeScenario cancellation", () => {
       mode === "paused" ? async (_node, notify) => { notify(); controller.abort(); } : undefined,
       controller.signal);
     expect(action).toHaveBeenCalledTimes(mode === "action" || mode === "rejected" ? 1 : 0);
-    expect(events.filter(e => e.type === "run.finished")).toEqual([{ type: "run.finished", runId: "test", status: "failed" }]);
+    expect(events.filter(e => e.type === "run.finished")).toEqual([{ type: "run.finished", runId: "test", status: "cancelled" }]);
     expect(events.filter(e => e.type === "node.completed" || e.type === "node.failed")).toEqual([]);
     expect(events.filter(e => e.type === "node.started").map(e => e.nodeId)).toEqual(mode === "action" || mode === "rejected" ? ["start"] : []);
+  });
+
+  it("reports genuine action failure separately", async () => {
+    const events: ExecutionEvent[] = [];
+    const error = new Error("action failed");
+    await expect(executeScenario(scenario, async () => { throw error; }, e => events.push(e), "test")).rejects.toBe(error);
+    expect(events.filter(e => e.type === "run.finished")).toEqual([{ type: "run.finished", runId: "test", status: "failed" }]);
   });
 
   it("completes normally without cancellation", async () => {
