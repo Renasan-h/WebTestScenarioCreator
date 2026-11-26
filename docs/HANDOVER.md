@@ -11,6 +11,9 @@
 
 ## 最新コミット情報
 
+- `08a50a04ae4855e9c9db7ffdeb550dcc0b0be5aa`: デバッグ停止表示GUI回帰テスト2件追加。Tauri IPC・イベントを模擬し、一時停止中/実行中のcancelled、成功維持、未実行維持、進捗33%、ログ、ボタン状態を検証。
+- Phase 4/5（Phase 3継続）。テスト・ビルド未実行、CI未起動。Tauriイベント模擬の実互換性も未確認。次は終了イベントなしの強制停止とstopRequested競合、強制停止GUI回帰テスト、アプリ終了処理。
+
 - `27afed8e1dd92c548ace57fa2a0d86c8f99a8378`: src/App.tsx
 - `14c65687a62cd20f98a6ddc8502d8f7079068977`: src/components/ScenarioDebugger.tsx
 - `e116ff4338c6071c59c8cef334988f5f34ecd8ac`: src/style.css
