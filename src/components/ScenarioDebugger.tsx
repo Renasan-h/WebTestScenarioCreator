@@ -81,10 +81,10 @@ export function ScenarioDebugger({ scenario, nodes, edges, nodeStatus, pausedNod
         <div className="debug-log-stream" role="log" aria-label="デバッグログ">{logs.length ? logs.map((entry, index) => {
           let display = entry;
           try {
-            const parsed = JSON.parse(entry) as { type?: string; nodeId?: string; message?: string };
+            const parsed = JSON.parse(entry) as { type?: string; nodeId?: string; message?: string; status?: string };
             if (parsed.type) {
               const label = scenario.nodes.find(node => node.id === parsed.nodeId)?.label;
-              display = [parsed.type, label, parsed.message].filter(Boolean).join(" / ");
+              display = [parsed.type, label, parsed.status, parsed.message].filter(Boolean).join(" / ");
             }
           } catch { /* plain log */ }
           return <div key={index}>{display}</div>;
