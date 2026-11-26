@@ -11,6 +11,8 @@
 
 ## 最新コミット情報
 
+- `98f2f3705dceccc0a512cb1c201d029ff9589b8b`: shutdown_completeを追加し、後始末完了後のapp.exitによる終了要求を許可。実行検証・ビルド未実施。
+
 - `a2703c01153b30870bb656bc800f6b74a3eddcbb`: src-tauri/src/lib.rs
 - `a46939d529cba4529db1d863015aec6c78adc641`: docs/SPECIFICATION.md
 - Phase 4/5（Phase 3継続）。ExitRequestedで終了を保留し、新規起動を禁止して既存stop_runnerをバックグラウンド実行後app.exit(0)。異常終了時も停止を試行。テスト・ビルド未実行、CI未起動。次はTauri exit APIの実挙動確認と終了回帰テスト、停止失敗後の継続テスト。停止処理ハング、親終了後の子孫残留、OS強制終了は未対応。停止失敗でもログを出して終了する方針。
