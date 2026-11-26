@@ -48,7 +48,7 @@ for (const mode of ["STOP", "EOF"] as const) {
       if (timing === "startup") expect(events.filter(e => e.type === "node.paused")).toEqual([]);
       expect(inputError).toBeUndefined();
       expect(result, stderr).toEqual({ code: 0, signal: null });
-      expect(events.filter(e => e.type === "run.finished")).toEqual([expect.objectContaining({ status: "failed" })]);
+      expect(events.filter(e => e.type === "run.finished")).toEqual([expect.objectContaining({ status: "cancelled" })]);
       expect(events.filter(e => e.type === "node.started")).toEqual([]);
     } finally {
       if (child.pid && child.exitCode === null && child.signalCode === null) {
