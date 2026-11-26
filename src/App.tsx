@@ -403,14 +403,17 @@ function Editor() {
     const errors = validateGraph(s);
     if (errors.length) { setMessage(errors.join(" / ")); return; }
     stopRequested.current = false;
+    let outcome: "completed" | "failed" | "cancelled" | undefined;
     setBusy(true); setDebugging(debug); setPausedNode(null); setNodeStatus({}); setLogs([]); setMessage(debug ? "デバッグ開始中" : "実行中");
     let unlisten: (() => void) | undefined;
     try {
       unlisten = await listen<string>("scenario-log", e => {
         setLogs(ls => [...ls, e.payload]);
         try {
-          const event = JSON.parse(e.payload) as { type?: string; nodeId?: string; message?: string };
-          if (event.nodeId && event.type === "node.paused") {
+          const event = JSON.parse(e.payload) as { type?: string; nodeId?: string; message?: string; status?: string };
+          if (event.type === "run.finished" && (event.status === "completed" || event.status === "failed" || event.status === "cancelled")) {
+            outcome = event.status;
+          } else if (event.nodeId && event.type === "node.paused") {
             setPausedNode(event.nodeId);
             setNodeStatus(status => ({ ...status, [event.nodeId!]: "paused" }));
             setMessage("一時停止中: 次のステップを実行できます");
@@ -426,7 +429,7 @@ function Editor() {
         } catch { /* non-JSON log */ }
       });
       await invoke("run_scenario", { scenarioJson: JSON.stringify(s), record: false, debug });
-      setMessage(stopRequested.current ? "実行を停止しました" : "実行完了");
+      setMessage(outcome === "cancelled" || (outcome === undefined && stopRequested.current) ? "実行を停止しました" : outcome === "failed" ? "実行失敗" : "実行完了");
     } catch (e) { setMessage(stopRequested.current ? "実行を停止しました: " + String(e) : "実行失敗: " + String(e)); }
     finally { unlisten?.(); setBusy(false); setStopping(false); setDebugging(false); setPausedNode(null); }
   }
