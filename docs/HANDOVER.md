@@ -11,6 +11,12 @@
 
 ## 最新コミット情報
 
+- `27afed8e1dd92c548ace57fa2a0d86c8f99a8378`: src/App.tsx
+- `14c65687a62cd20f98a6ddc8502d8f7079068977`: src/components/ScenarioDebugger.tsx
+- `e116ff4338c6071c59c8cef334988f5f34ecd8ac`: src/style.css
+- `261accc6a997bd39a0d25ab781919334f9689f95`: docs/SPECIFICATION.md
+- Phase 4/5（Phase 3継続）。cancelled終了イベントで停止ノード、概要、紫色破線、凡例を表示。停止中ステップ・続行無効化。テスト・ビルド未実行、CI未起動。次はGUI回帰テスト、終了イベントなしの強制停止とstopRequested競合、アプリ終了処理。終了イベントなしの場合は今回の停止表示対象外。
+
 - `b073e9b0560dae338813240d2f84883ab797dd97`: packages/engine/src/execute.ts
 - `a775680f7f0f3a8f6361e03522439386cea39e00`: tests/execute-cancellation.test.ts
 - `a83cab1a1aebcad6635931a853cdcf247abb1c99`: tests/ui/sidecar-stop.spec.ts
