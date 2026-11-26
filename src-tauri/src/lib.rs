@@ -409,6 +409,44 @@ mod runner_stop_tests {
     }
 
     #[test]
+    fn blocked_pipe_writer_is_released_by_stop() {
+        // The child deliberately never reads stdin. Its own timer bounds
+        // the test even if the stop implementation regresses.
+        let child = runner("setTimeout(() => process.exit(0), 15000);", true);
+        let mut input = child.lock().unwrap().stdin.take().unwrap();
+        let (started_tx, started_rx) = std::sync::mpsc::channel();
+        let (done_tx, done_rx) = std::sync::mpsc::channel();
+        let writer = std::thread::spawn(move || {
+            let payload = vec![b'x'; 8 * 1024 * 1024];
+            started_tx.send(()).unwrap();
+            let result = input.write_all(&payload);
+            let _ = done_tx.send(result);
+        });
+        started_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+        let blocked = matches!(done_rx.recv_timeout(Duration::from_millis(300)),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout));
+        let start = Instant::now();
+        let stopped = stop_runner(child.clone(), Duration::from_millis(200));
+        let elapsed = start.elapsed();
+        let released = if blocked {
+            matches!(done_rx.recv_timeout(Duration::from_secs(3)), Ok(Err(_)))
+        } else { false };
+        // Always reap the test child, including assertion failure paths.
+        let status = {
+            let mut process = child.lock().unwrap();
+            let status = process.try_wait().unwrap();
+            if status.is_none() { let _ = process.kill(); }
+            status.unwrap_or_else(|| process.wait().unwrap())
+        };
+        writer.join().unwrap();
+        assert!(blocked, "large pipe write did not block");
+        stopped.expect("stop failed");
+        assert!(elapsed < Duration::from_secs(10), "stop waited for the child timer");
+        assert!(released, "blocked writer did not return an error");
+        assert!(!status.success());
+    }
+
+    #[test]
     fn debug_command_restores_input_for_stop() {
         let child = runner("let stepped=false; require('node:readline').createInterface({input:process.stdin}).on('line', line => { if(line === 'STEP') stepped=true; if(line === 'STOP') process.exit(stepped ? 0 : 2); }); setTimeout(() => process.exit(9), 15000);", true);
         send_debug_command(child.clone(), "STEP").unwrap();
