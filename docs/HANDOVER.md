@@ -6,10 +6,12 @@
 
 ## 現在のPhase
 
-- **Phase 3：実行・記録・コード出力（進行中）**。Phase 2は保存再読込の解決報告あり、全44件ログ待ち。
+- **Phase 6：実機検証用ポータブルZIP（優先・進行中）**。Phase 3は継続中。Phase 2は保存再読込の解決報告あり、全44件ログ待ち。
 - Phase 5（品質確認）を並行して実施。その他の状態・完了条件は [ROADMAP.md](ROADMAP.md) を参照。
 
 ## 最新コミット情報
+
+- Phase 6先行（ユーザー指示）。`d0bc3f487e9138153269c288fd9417519ac6decc`, `97a46c0982084c8eef4a67c6b7d3c1537d6a92b5`, `21dfcd94c020c9c6f741e374d4b278c064bb2709`, `fd4dba05b161475053466252bf3da66655dae9da`, `8d94b48f8adb3d7e52915eeddf97e1c817585c51`, `ff7daf9c591c88cc5f1176bfe7272ceb4170a48c`, `425de94d5e3ffd4c69697e7687d8928b9b40086b`: EXE隣接runtime起動、Windows ZIP生成スクリプト、pnpm build:portable、develop手動CIのportableオプション、仕様・ロードマップ更新。Node/Chromium同梱、WebView2とEdgeはOS側依存。単一EXE未実装、署名なし。ビルド・ZIP生成・実機・テスト未実行。mainのworkflow定義は変更していないため、Run workflow画面でportable入力が表示されない可能性あり。その場合はmainのCI定義のみ更新する承認を得るか、既存Windows開発環境でpnpm build:portableを実行。次はZIP生成成功と実機起動・記録・実行・停止確認、依存ライセンス確認、単一EXE化。CI未起動。
 
 - `0e127e55f78967004cb1fbfd9f58013a1b415b7e`, `270819058a56701b2e9f063e6821c4d665b49d16`, `370f71fb04d0380ac2da55e959de9b62709e19f8`: Phase 4/5。残留確認IPC例外時に終了未確認として新規実行・記録を禁止し、停止再試行を可能にした。連続確認失敗と復旧、停止履歴維持のGUIモック回帰テスト1件追加（停止関連9件）。確認失敗と実残留は同じUI状態を使用。自動監視・IPC応答なしのタイムアウトは未対応。今回テスト・ビルド未実行、手動CI未起動。次はユーザー手動CIで検証、自然終了再確認とRust単体テスト検証計画。
 
