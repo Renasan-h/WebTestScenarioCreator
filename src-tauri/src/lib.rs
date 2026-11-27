@@ -257,7 +257,6 @@ async fn run_scenario(
     record: Option<bool>,
     debug: Option<bool>,
 ) -> Result<(), String> {
-    // Development-only: the portable release will require a bundled runtime.
     let (child_slot, mut initial_input) = {
         let mut active = state.child.lock().map_err(|e| e.to_string())?;
         state.ensure_can_start()?;
@@ -267,9 +266,29 @@ async fn run_scenario(
             }
         }
         if active.is_some() { return Err("別のシナリオが実行中です。停止を再試行してください".into()); }
-        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
-        let mut command = Command::new("node");
+        let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+        let portable = exe.parent().ok_or("実行ファイルの場所を取得できません")?.join("runtime");
+        let (mut command, root) = if portable.is_dir() {
+            let node = portable.join("node.exe");
+            let runner = portable.join("sidecar").join("main.ts");
+            if !node.is_file() || !runner.is_file() || !portable.join("node_modules").is_dir() || !portable.join("browsers").is_dir() {
+                return Err("同梱ランタイムが不足しています。ZIPをすべて展開してください".into());
+            }
+            let mut command = Command::new(node);
+            command.env("PLAYWRIGHT_BROWSERS_PATH", portable.join("browsers"));
+            command.env_remove("SCENARIO_CHROMIUM_PATH");
+            (command, portable)
+        } else if cfg!(debug_assertions) {
+            (Command::new("node"), std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".."))
+        } else {
+            return Err("同梱runtimeフォルダーがありません。ZIPをすべて展開してください".into());
+        };
         command.arg("--import").arg("tsx").arg("sidecar/main.ts").arg("--stdin");
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x08000000);
+        }
         if record.unwrap_or(false) { command.arg("--record"); }
         if debug.unwrap_or(false) { command.arg("--debug"); }
         let child = command.current_dir(root)
