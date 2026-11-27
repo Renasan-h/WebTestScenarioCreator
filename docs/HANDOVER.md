@@ -11,6 +11,9 @@
 
 ## 最新コミット情報
 
+- `91f48ae733c7e6a1587ab9031716b21ac82de8d0`: CI #129（run 46055003347、develop 60a9795）ではVitest 76成功・2スキップ、TypeScript/Viteビルド成功、Rust cargo check成功、Playwright GUI 65成功・1失敗・12スキップ。失敗は tests/ui/stop.spec.ts の early STOP で、recorder-ready 前の正常終了をテストが誤って失敗判定。earlyだけready待機を除外して終了コード検証は維持。修正後テスト・ビルド未実行、CI再実行なし。次はユーザー手動CIでGUI含む再検証、Rust単体テスト、残留確認IPC失敗時対策。
+- `0c8583a96fa5229a4b1cb59f586bc8db5dd9f117`: リポジトリはユーザーがPublic化済み。手動workflow_dispatchのみで検証する現行ルールへ更新。自動CIや課金設定は変更なし。
+
 - `0da1ef200545c9e8ee7b06a08e47ddd5893cf3e2`: CI #128（run 46048655025、develop 8f14dcc）でVitest 75成功・1失敗・2スキップ、Rust cargo check成功。失敗は Playwright Python構文確認（export-selenium.test.ts:428）のVitest既定5秒タイムアウト。Python起動のCI遅延対策としてテスト上限20秒・spawnSync上限15秒とプロセス起動エラーの確認を追加。生成コードは変更なし。ビルド・GUIはスキップ、Rust cargo test未実行。修正後テスト・ビルド未実行、CIは再実行していない。次は pnpm test・pnpm build・GUIとRust単体テスト、残留確認IPC失敗対策。
 
 - `28da7e9ae872f4eed29c9a981294173b2a1100b1`: Phase 4/5（Phase 3継続）。GUI停止回帰テストに残留ケース1件追加（計8件）。初回停止と実行IPC失敗、残留確認、再停止失敗、次の再停止応答待ち、新規実行禁止、残留解消後の失敗履歴維持と再実行を検証する構成。既存ケースにも残留確認IPCのfalse応答を追加。Tauri模擬のみ、TOP・編集・記録経路と実プロセスは未検証。テスト・ビルド未実行、CI未起動。次は残留確認IPC失敗時の安全対策と自然終了再確認。仕様変更なし。
