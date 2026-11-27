@@ -224,6 +224,17 @@ fn serialized_stop(gate: &Mutex<()>, child: Arc<Mutex<Child>>, grace: std::time:
 }
 
 #[tauri::command]
+fn runner_cleanup_pending(state: State<'_, RunnerState>) -> Result<bool, String> {
+    let mut active = state.child.lock().map_err(|e| e.to_string())?;
+    if state.cleanup_pending.load(std::sync::atomic::Ordering::SeqCst) {
+        if let Some(child) = active.clone() {
+            state.release_finished(&mut active, &child)?;
+        }
+    }
+    Ok(state.cleanup_pending.load(std::sync::atomic::Ordering::SeqCst))
+}
+
+#[tauri::command]
 async fn stop_scenario(state: State<'_, RunnerState>) -> Result<(), String> {
     let child = state.child.lock().map_err(|e| e.to_string())?.clone()
         .ok_or("実行中のシナリオがありません")?;
@@ -335,7 +346,7 @@ pub fn run() {
         .manage(RunnerState::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .invoke_handler(tauri::generate_handler![run_scenario, stop_scenario, debug_control, list_scenario_files, read_scenario_file, write_scenario_file])
+        .invoke_handler(tauri::generate_handler![run_scenario, stop_scenario, runner_cleanup_pending, debug_control, list_scenario_files, read_scenario_file, write_scenario_file])
         .build(tauri::generate_context!())
         .expect("error while building scenario studio")
         .run(|app, event| {
