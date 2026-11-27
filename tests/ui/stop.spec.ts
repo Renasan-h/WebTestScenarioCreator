@@ -32,18 +32,21 @@ test(`STOP closes the recording browser (${mode})`, async () => {
   try {
     child.stdin.write(JSON.stringify(scenario) + "\n");
     if (mode === "early") child.stdin.write("STOP\n");
-    // Wait for the recorder to finish browser initialization before stopping it.
-    const output = createInterface({ input: child.stdout });
-    await Promise.race([
-      (async () => {
-        for await (const line of output) {
-          if (JSON.parse(line).kind === "recorder-ready") return;
-        }
-        throw new Error("Recorder exited before ready: " + stderr);
-      })(),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Recorder not ready: " + stderr)), 15000)),
-    ]);
-    if (mode !== "early") child.stdin.write("STOP\n");
+    // An early STOP can terminate the recorder before it emits recorder-ready.
+    // Only the normal and duplicate paths require browser initialization.
+    if (mode !== "early") {
+      const output = createInterface({ input: child.stdout });
+      await Promise.race([
+        (async () => {
+          for await (const line of output) {
+            if (JSON.parse(line).kind === "recorder-ready") return;
+          }
+          throw new Error("Recorder exited before ready: " + stderr);
+        })(),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Recorder not ready: " + stderr)), 15000)),
+      ]);
+      child.stdin.write("STOP\n");
+    }
     if (mode === "duplicate") child.stdin.write("STOP\n");
     const [code, signal] = await Promise.race([
       exit,
