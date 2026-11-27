@@ -11,6 +11,8 @@ type Props = {
   selectedPath: string | null;
   scenario: Scenario;
   busy: boolean;
+  cleanupPending: boolean;
+  stopping: boolean;
   message: string;
   logs: string[];
   errors: string[];
@@ -49,7 +51,7 @@ function CategoryList({ branch, depth, selectedPath, onSelect }: { branch: Categ
   </>;
 }
 
-export function ScenarioHome({ directory, onDirectoryChange, selectedPath, scenario, busy, message, logs, errors, onSelect, onNew, onOpen, onEdit, onDebug, onRun, onStop }: Props) {
+export function ScenarioHome({ directory, onDirectoryChange, selectedPath, scenario, busy, cleanupPending, stopping, message, logs, errors, onSelect, onNew, onOpen, onEdit, onDebug, onRun, onStop }: Props) {
   const [entries, setEntries] = useState<ScenarioEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -120,10 +122,10 @@ export function ScenarioHome({ directory, onDirectoryChange, selectedPath, scena
           {errors.length > 0 && selectedPath && <p className="home-validation">⚠ 接続の確認が必要です（{errors.length}件）</p>}
         </div>
         <div className="home-card-actions">
-          <button className="run-button" disabled={!selectedPath || busy} onClick={onRun}>▶ 実行</button>
+          <button className="run-button" disabled={!selectedPath || busy || cleanupPending || stopping} onClick={onRun}>▶ 実行</button>
           <button disabled={!selectedPath || busy} onClick={onEdit}>✎ 編集する</button>
           <button disabled={!selectedPath || busy} onClick={onDebug}>◇ デバッグ</button>
-          {busy && <button className="stop-button" onClick={onStop}>■ 停止</button>}
+          {(busy || cleanupPending) && <button className="stop-button" disabled={stopping} onClick={onStop}>{cleanupPending ? "■ 停止再試行" : "■ 停止"}</button>}
         </div>
       </section>
       <div className="home-bottom-grid">
