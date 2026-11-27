@@ -11,6 +11,8 @@
 
 ## 最新コミット情報
 
+- `0e127e55f78967004cb1fbfd9f58013a1b415b7e`, `270819058a56701b2e9f063e6821c4d665b49d16`, `370f71fb04d0380ac2da55e959de9b62709e19f8`: Phase 4/5。残留確認IPC例外時に終了未確認として新規実行・記録を禁止し、停止再試行を可能にした。連続確認失敗と復旧、停止履歴維持のGUIモック回帰テスト1件追加（停止関連9件）。確認失敗と実残留は同じUI状態を使用。自動監視・IPC応答なしのタイムアウトは未対応。今回テスト・ビルド未実行、手動CI未起動。次はユーザー手動CIで検証、自然終了再確認とRust単体テスト検証計画。
+
 - CI #130（run 46058153070、検証HEAD `5a4e7dadd79b8313beed4e72246c0884f949ddba`）は **成功**。Windows手動CIのfrontend/rust両ジョブ成功。Vitest 76成功・2スキップ（全78）、TypeScript/Viteビルド成功、Playwright GUI 66成功・12スキップ（全78）、Rust `cargo check` 成功。前回の早期STOPテスト修正をCIで検証済み。Rust `cargo test` とWindows Tauri実機動作は未実施。今回コード変更なし、CI再実行なし。次は残留確認IPC失敗時の安全対策、自然終了再確認、Rustテストの手動検証計画。
 
 - `91f48ae733c7e6a1587ab9031716b21ac82de8d0`: CI #129（run 46055003347、develop 60a9795）ではVitest 76成功・2スキップ、TypeScript/Viteビルド成功、Rust cargo check成功、Playwright GUI 65成功・1失敗・12スキップ。失敗は tests/ui/stop.spec.ts の early STOP で、recorder-ready 前の正常終了をテストが誤って失敗判定。earlyだけready待機を除外して終了コード検証は維持。修正後テスト・ビルド未実行、CI再実行なし。次はユーザー手動CIでGUI含む再検証、Rust単体テスト、残留確認IPC失敗時対策。
@@ -717,7 +719,7 @@
 
 ## 開発上の注意事項
 
-- 通常の開発は `develop`、リポジトリはPrivateを維持。
+- 通常の開発は `develop`、ユーザー変更済みのPublic設定を維持。
 - `main`へのマージ、Public化、CI自動実行、手動CI起動、課金設定変更は無断で行わない。
 - コミットメッセージは `docs/DEVELOPMENT_RULES.md` の日本語形式を厳守。
 - 仕様変更時は `docs/SPECIFICATION.md`、Phase変更時は `docs/ROADMAP.md`、開発の区切りごとに本書を更新。
