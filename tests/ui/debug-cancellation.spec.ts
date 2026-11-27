@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-for (const mode of ["paused", "running", "forced", "stop-failed", "natural", "retry-paused", "retry-running", "residual"] as const) {
+for (const mode of ["paused", "running", "forced", "stop-failed", "natural", "retry-paused", "retry-running", "residual", "cleanup-unknown"] as const) {
   const active = mode === "paused" || mode === "retry-paused" ? "paused" : "running";
   test("debug cancellation preserves completed nodes and marks " + mode + " node", async ({ page }) => {
     await page.addInitScript(({ active, mode }) => {
@@ -21,6 +21,7 @@ for (const mode of ["paused", "running", "forced", "stop-failed", "natural", "re
       let nextId = 0;
       let stopAttempts = 0;
       let cleanupPending = false;
+      let cleanupChecks = 0;
       let listener: number | undefined;
       let finish: (() => void) | undefined;
       let fail: ((reason: Error) => void) | undefined;
@@ -35,7 +36,10 @@ for (const mode of ["paused", "running", "forced", "stop-failed", "natural", "re
           if (command === "read_scenario_file") return JSON.stringify(fixture);
           if (command === "plugin:event|listen") { listener = args?.handler; return 1; }
           if (command === "plugin:event|unlisten") { listener = undefined; return; }
-          if (command === "runner_cleanup_pending") return cleanupPending;
+          if (command === "runner_cleanup_pending") {
+            if (mode === "cleanup-unknown" && ++cleanupChecks <= 2) throw new Error("Cleanup check unavailable");
+            return cleanupPending;
+          }
           if (command === "run_scenario") {
             return new Promise<void>((resolve, reject) => {
               finish = resolve;
@@ -48,6 +52,7 @@ for (const mode of ["paused", "running", "forced", "stop-failed", "natural", "re
           }
           if (command === "stop_scenario") {
             stopAttempts++;
+            if (mode === "cleanup-unknown" && stopAttempts > 1) return;
             if (mode === "residual") {
               if (stopAttempts === 1) {
                 cleanupPending = true;
@@ -93,6 +98,22 @@ for (const mode of ["paused", "running", "forced", "stop-failed", "natural", "re
     await page.getByRole("button", { name: "▶ デバッグ開始" }).click();
     await expect(page.locator(".debug-step--" + active)).toHaveCount(1);
     await page.getByRole("button", { name: "■ 停止", exact: true }).click();
+    if (mode === "cleanup-unknown") {
+      const start = page.getByRole("button", { name: "▶ デバッグ開始" });
+      const retry = page.getByRole("button", { name: "■ 停止再試行", exact: true });
+      await expect(retry).toBeEnabled();
+      await expect(start).toBeDisabled();
+      await expect(page.getByText(/ランナーの終了確認に失敗しました/).first()).toBeVisible();
+      await retry.click();
+      await expect(page.getByText("ランナーの終了を確認できません。停止を再試行してください").first()).toBeVisible();
+      await expect(start).toBeDisabled();
+      await expect(retry).toBeEnabled();
+      await retry.click();
+      await expect(start).toBeEnabled();
+      await expect(page.getByText("残留ランナーを停止しました").first()).toBeVisible();
+      await expect(page.locator(".debug-step--cancelled")).toHaveCount(1);
+      return;
+    }
     if (mode === "residual") {
       const start = page.getByRole("button", { name: "▶ デバッグ開始" });
       const retry = page.getByRole("button", { name: "■ 停止再試行", exact: true });
