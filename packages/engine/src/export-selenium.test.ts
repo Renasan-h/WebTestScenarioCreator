@@ -426,9 +426,14 @@ describe("multi-language exports", () => {
   const python = [process.platform === "win32" ? "py" : "python3", "python"].find(command =>
     spawnSync(command, ["--version"], { encoding: "utf8" }).status === 0);
   it.skipIf(!python).each([["Playwright", exportPlaywrightLanguage(graph, "python")], ["Selenium", exportSeleniumLanguage(graph, "python")]])("checks %s Python syntax", (_name, code) => {
-    const result = spawnSync(python!, ["-c", "import ast, sys; ast.parse(sys.stdin.buffer.read().decode('utf-8'))"], { input: code, encoding: "utf8" });
+    // Starting Python on a clean Windows CI runner can exceed Vitest's 5s default.
+    // Bound the external process separately so failures remain diagnosable.
+    const result = spawnSync(python!, ["-c", "import ast, sys; ast.parse(sys.stdin.buffer.read().decode('utf-8'))"], {
+      input: code, encoding: "utf8", timeout: 15000,
+    });
+    expect(result.error).toBeUndefined();
     expect(result.status, result.stderr).toBe(0);
-  });
+  }, 20000);
   for (const [name, envKey, code] of [
     ["Playwright", "PLAYWRIGHT_JAVA_CLASSPATH", exportPlaywrightLanguage(graph, "java")],
     ["Selenium", "SELENIUM_JAVA_CLASSPATH", exportSeleniumLanguage(graph, "java")],
