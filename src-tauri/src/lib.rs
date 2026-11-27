@@ -80,6 +80,7 @@ async fn write_scenario_file(path: String, content: String) -> Result<(), String
 struct RunnerState {
     child: Mutex<Option<Arc<Mutex<Child>>>>,
     stop_gate: Arc<Mutex<()>>,
+    cleanup_pending: std::sync::atomic::AtomicBool,
     shutting_down: std::sync::atomic::AtomicBool,
     shutdown_complete: std::sync::atomic::AtomicBool,
 }
@@ -111,6 +112,18 @@ impl RunnerState {
         let child = Arc::new(Mutex::new(child));
         *active = Some(child.clone());
         Ok((child, input))
+    }
+
+    // Called with the active slot locked. Keep an unconfirmed process tracked.
+    fn release_finished(&self, active: &mut Option<Arc<Mutex<Child>>>, child: &Arc<Mutex<Child>>) -> Result<(), String> {
+        use std::sync::atomic::Ordering::SeqCst;
+        if !active.as_ref().is_some_and(|current| Arc::ptr_eq(current, child)) { return Ok(()); }
+        self.cleanup_pending.store(true, SeqCst);
+        if child.lock().map_err(|e| e.to_string())?.try_wait().map_err(|e| e.to_string())?.is_some() {
+            *active = None;
+            self.cleanup_pending.store(false, SeqCst);
+        }
+        Ok(())
     }
 
     fn cleanup_for_exit(&self, grace: std::time::Duration) -> Result<(), String> {
@@ -215,8 +228,14 @@ async fn stop_scenario(state: State<'_, RunnerState>) -> Result<(), String> {
     let child = state.child.lock().map_err(|e| e.to_string())?.clone()
         .ok_or("実行中のシナリオがありません")?;
     let gate = state.stop_gate.clone();
-    tauri::async_runtime::spawn_blocking(move || serialized_stop(&gate, child, std::time::Duration::from_secs(5)))
-        .await.map_err(|e| e.to_string())?
+    let target = child.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || serialized_stop(&gate, child, std::time::Duration::from_secs(5)))
+        .await.map_err(|e| e.to_string())?;
+    let mut active = state.child.lock().map_err(|e| e.to_string())?;
+    if state.cleanup_pending.load(std::sync::atomic::Ordering::SeqCst) {
+        state.release_finished(&mut active, &target)?;
+    }
+    result
 }
 
 #[tauri::command]
@@ -231,7 +250,12 @@ async fn run_scenario(
     let (child_slot, mut initial_input) = {
         let mut active = state.child.lock().map_err(|e| e.to_string())?;
         state.ensure_can_start()?;
-        if active.is_some() { return Err("別のシナリオが実行中です".into()); }
+        if state.cleanup_pending.load(std::sync::atomic::Ordering::SeqCst) {
+            if let Some(previous) = active.clone() {
+                state.release_finished(&mut active, &previous)?;
+            }
+        }
+        if active.is_some() { return Err("別のシナリオが実行中です。停止を再試行してください".into()); }
         let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
         let mut command = Command::new("node");
         command.arg("--import").arg("tsx").arg("sidecar/main.ts").arg("--stdin");
@@ -301,9 +325,7 @@ async fn run_scenario(
     }
     // Clear only our own process, never a newer run.
     let mut active = state.child.lock().map_err(|e| e.to_string())?;
-    if active.as_ref().is_some_and(|current| Arc::ptr_eq(current, &child_slot)) {
-        *active = None;
-    }
+    state.release_finished(&mut active, &child_slot)?;
     result?
 }
 
@@ -504,6 +526,25 @@ mod runner_stop_tests {
         let child = runner("let stepped=false; require('node:readline').createInterface({input:process.stdin}).on('line', line => { if(line === 'STEP') stepped=true; if(line === 'STOP') process.exit(stepped ? 0 : 2); }); setTimeout(() => process.exit(9), 15000);", true);
         send_debug_command(child.clone(), "STEP").unwrap();
         assert_stopped(child, Duration::from_secs(5), true);
+    }
+
+    #[test]
+    fn unfinished_runner_remains_tracked_until_exit() {
+        let state = RunnerState::default();
+        let child = runner("setTimeout(() => process.exit(0), 15000);", true);
+        let mut active = state.child.lock().unwrap();
+        *active = Some(child.clone());
+        state.release_finished(&mut active, &child).unwrap();
+        assert!(active.as_ref().is_some_and(|current| Arc::ptr_eq(current, &child)));
+        assert!(state.cleanup_pending.load(std::sync::atomic::Ordering::SeqCst));
+        {
+            let mut process = child.lock().unwrap();
+            process.kill().unwrap();
+            process.wait().unwrap();
+        }
+        state.release_finished(&mut active, &child).unwrap();
+        assert!(active.is_none());
+        assert!(!state.cleanup_pending.load(std::sync::atomic::Ordering::SeqCst));
     }
 
     #[test]
