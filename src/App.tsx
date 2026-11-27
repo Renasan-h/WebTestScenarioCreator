@@ -380,7 +380,12 @@ function Editor() {
       const pending = await invoke<boolean>("runner_cleanup_pending");
       setCleanupPending(pending);
       return pending;
-    } catch { return undefined; }
+    } catch (error) {
+      // Unknown is not equivalent to a confirmed clean runner state.
+      setCleanupPending(true);
+      setMessage("ランナーの終了確認に失敗しました。停止を再試行してください: " + String(error));
+      return undefined;
+    }
   }
   async function startRecording() {
     if (busy || cleanupPending || stopping) return;
