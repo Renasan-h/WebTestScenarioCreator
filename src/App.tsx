@@ -84,6 +84,7 @@ function Editor() {
   const [exportLanguage, setExportLanguage] = useState<"typescript" | "python" | "java" | "javascript">("typescript");
   const [logs, setLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [cleanupPending, setCleanupPending] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [recording, setRecording] = useState(false);
   const [debugging, setDebugging] = useState(false);
@@ -374,8 +375,15 @@ function Editor() {
   const stopRequested = useRef(false);
   const pendingStop = useRef<Promise<boolean> | null>(null);
   const runGeneration = useRef(0);
+  async function refreshCleanup() {
+    try {
+      const pending = await invoke<boolean>("runner_cleanup_pending");
+      setCleanupPending(pending);
+      return pending;
+    } catch { return undefined; }
+  }
   async function startRecording() {
-    if (busy) return;
+    if (busy || cleanupPending || stopping) return;
     const s = snapshot();
     recordingGraph.current = s;
     runGeneration.current++;
@@ -402,9 +410,10 @@ function Editor() {
       if (pendingStop.current) await pendingStop.current;
       setMessage(stopRequested.current ? "記録を停止しました。シナリオを確認して保存してください。" : "記録終了。シナリオを確認して保存してください。");
     } catch (e) { if (pendingStop.current) await pendingStop.current; setMessage(stopRequested.current ? "記録を停止しました: " + String(e) : "記録失敗: " + String(e)); }
-    finally { unlisten?.(); recordingGraph.current = null; setBusy(false); setRecording(false); setStopping(false); }
+    finally { unlisten?.(); await refreshCleanup(); recordingGraph.current = null; setBusy(false); setRecording(false); setStopping(false); }
   }
   async function run(debug = false) {
+    if (busy || cleanupPending || stopping) return;
     const s = snapshot();
     const errors = validateGraph(s);
     if (errors.length) { setMessage(errors.join(" / ")); return; }
@@ -455,7 +464,7 @@ function Editor() {
       applyOutcome(result);
       setMessage(result === "cancelled" ? "実行を停止しました: " + String(e) : "実行失敗: " + String(e));
     }
-    finally { unlisten?.(); setBusy(false); setStopping(false); setDebugging(false); setPausedNode(null); }
+    finally { unlisten?.(); await refreshCleanup(); setBusy(false); setStopping(false); setDebugging(false); setPausedNode(null); }
   }
   async function debugCommand(command: "STEP" | "CONTINUE") {
     if (!debugging || !pausedNode || stopping) return;
@@ -466,7 +475,20 @@ function Editor() {
     } catch (e) { setMessage("デバッグ操作失敗: " + String(e)); }
   }
   async function stop() {
-    if (!busy || stopping || pendingStop.current) return;
+    if (stopping) return;
+    if (!busy && cleanupPending) {
+      setStopping(true);
+      try {
+        await invoke("stop_scenario");
+        const pending = await refreshCleanup();
+        setMessage(pending === false ? "残留ランナーを停止しました" : "ランナーの終了を確認できません。停止を再試行してください");
+      } catch (e) {
+        await refreshCleanup();
+        setMessage("停止失敗: " + String(e));
+      } finally { setStopping(false); }
+      return;
+    }
+    if (!busy || pendingStop.current) return;
     const generation = runGeneration.current;
     setStopping(true); setMessage("停止処理中");
     const request = invoke("stop_scenario").then(() => {
@@ -523,10 +545,10 @@ function Editor() {
           <label>コード出力先 <select aria-label="コード出力先" value={exportTarget} disabled={busy} onChange={e => { const target = e.target.value as "playwright" | "selenium"; setExportTarget(target); if (target === "playwright" && exportLanguage === "javascript") setExportLanguage("typescript"); }}><option value="playwright">Playwright</option><option value="selenium">Selenium</option></select></label>
           <label>出力言語 <select aria-label="出力言語" value={exportLanguage} disabled={busy} onChange={e => setExportLanguage(e.target.value as typeof exportLanguage)}><option value="typescript">TypeScript</option><option value="python">Python</option><option value="java">Java</option>{exportTarget === "selenium" && <option value="javascript">JavaScript</option>}</select></label>
           <button disabled={busy} onClick={exportTest}>コード出力</button>
-          <button className="record-button" disabled={busy} onClick={startRecording}>{recording ? "記録中…" : "● 記録"}</button>
-          <button className="run-button" disabled={busy} onClick={() => run(false)}>▶ 実行</button>
+          <button className="record-button" disabled={busy || cleanupPending || stopping} onClick={startRecording}>{recording ? "記録中…" : "● 記録"}</button>
+          <button className="run-button" disabled={busy || cleanupPending || stopping} onClick={() => run(false)}>▶ 実行</button>
           <button disabled={busy} onClick={() => setScreen("debug")}>🐞 デバッグ</button>
-          {busy && <button className="stop-button" disabled={stopping} onClick={stop}>■ 停止</button>}
+          {(busy || cleanupPending) && <button className="stop-button" disabled={stopping} onClick={stop}>■ 停止</button>}
         </>}
         {screen !== "debug" && <div className="runtime-settings">
           <select aria-label="ブラウザ" disabled={busy} value={scenario.settings.browser} onChange={e => updateSettings({ browser: e.target.value as "edge" | "chromium" })}>
@@ -540,7 +562,7 @@ function Editor() {
         <button className="theme-icon-button" aria-label={theme === "dark" ? "ライトモードに切り替え" : "ダークモードに切り替え"} title={theme === "dark" ? "ライトモード" : "ダークモード"} onClick={() => changeTheme(theme === "dark" ? "light" : "dark")}>{theme === "dark" ? "☀" : "☾"}</button>
       </div>
     </header>
-    {screen === "home" ? <ScenarioHome directory={directory} onDirectoryChange={changeDirectory} selectedPath={path} scenario={scenario} busy={busy} message={message} logs={logs} errors={validateGraph(snapshot())} onSelect={filePath => { if (!busy) void openScenarioAt(filePath).catch(e => setMessage("読み込み失敗: " + String(e))); }} onNew={createScenario} onOpen={() => { void load(); }} onEdit={() => setScreen("editor")} onDebug={() => setScreen("debug")} onRun={() => { void run(false); }} onStop={() => { void stop(); }}/> : screen === "debug" ? <ScenarioDebugger scenario={snapshot()} nodes={nodes} edges={edges} nodeStatus={nodeStatus} runOutcome={runOutcome} pausedNode={pausedNode} busy={busy} debugging={debugging} stopping={stopping} logs={logs} message={message} theme={theme} onStart={() => { void run(true); }} onStep={() => { void debugCommand("STEP"); }} onContinue={() => { void debugCommand("CONTINUE"); }} onStop={() => { void stop(); }} onEdit={() => setScreen("editor")} onHome={() => setScreen("home")}/> : <>
+    {screen === "home" ? <ScenarioHome directory={directory} onDirectoryChange={changeDirectory} selectedPath={path} scenario={scenario} busy={busy} cleanupPending={cleanupPending} stopping={stopping} message={message} logs={logs} errors={validateGraph(snapshot())} onSelect={filePath => { if (!busy) void openScenarioAt(filePath).catch(e => setMessage("読み込み失敗: " + String(e))); }} onNew={createScenario} onOpen={() => { void load(); }} onEdit={() => setScreen("editor")} onDebug={() => setScreen("debug")} onRun={() => { void run(false); }} onStop={() => { void stop(); }}/> : screen === "debug" ? <ScenarioDebugger scenario={snapshot()} nodes={nodes} edges={edges} nodeStatus={nodeStatus} runOutcome={runOutcome} pausedNode={pausedNode} busy={busy} cleanupPending={cleanupPending} debugging={debugging} stopping={stopping} logs={logs} message={message} theme={theme} onStart={() => { void run(true); }} onStep={() => { void debugCommand("STEP"); }} onContinue={() => { void debugCommand("CONTINUE"); }} onStop={() => { void stop(); }} onEdit={() => setScreen("editor")} onHome={() => setScreen("home")}/> : <>
     <main className="editor-layout">
       <aside className="sidebar"><div className="panel-kicker">WORKSPACE</div><h3>シナリオ</h3>
         <input aria-label="シナリオ名" value={scenario.metadata.name} onChange={e => { checkpoint(); setScenario(s => ({ ...s, metadata: { ...s.metadata, name: e.target.value } })); }}/>
