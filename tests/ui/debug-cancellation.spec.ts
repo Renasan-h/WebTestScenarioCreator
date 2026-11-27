@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-for (const mode of ["paused", "running", "forced", "stop-failed", "natural", "retry-paused", "retry-running"] as const) {
+for (const mode of ["paused", "running", "forced", "stop-failed", "natural", "retry-paused", "retry-running", "residual"] as const) {
   const active = mode === "paused" || mode === "retry-paused" ? "paused" : "running";
   test("debug cancellation preserves completed nodes and marks " + mode + " node", async ({ page }) => {
     await page.addInitScript(({ active, mode }) => {
@@ -20,6 +20,7 @@ for (const mode of ["paused", "running", "forced", "stop-failed", "natural", "re
       const callbacks = new Map<number, (event: unknown) => void>();
       let nextId = 0;
       let stopAttempts = 0;
+      let cleanupPending = false;
       let listener: number | undefined;
       let finish: (() => void) | undefined;
       let fail: ((reason: Error) => void) | undefined;
@@ -34,6 +35,7 @@ for (const mode of ["paused", "running", "forced", "stop-failed", "natural", "re
           if (command === "read_scenario_file") return JSON.stringify(fixture);
           if (command === "plugin:event|listen") { listener = args?.handler; return 1; }
           if (command === "plugin:event|unlisten") { listener = undefined; return; }
+          if (command === "runner_cleanup_pending") return cleanupPending;
           if (command === "run_scenario") {
             return new Promise<void>((resolve, reject) => {
               finish = resolve;
@@ -46,6 +48,19 @@ for (const mode of ["paused", "running", "forced", "stop-failed", "natural", "re
           }
           if (command === "stop_scenario") {
             stopAttempts++;
+            if (mode === "residual") {
+              if (stopAttempts === 1) {
+                cleanupPending = true;
+                fail?.(new Error("Runner cleanup failed"));
+                throw new Error("Stop failed");
+              }
+              if (stopAttempts === 2) throw new Error("Retry failed");
+              await new Promise<void>(resolve => {
+                Object.defineProperty(window, "__releaseStop", { configurable: true, value: resolve });
+              });
+              cleanupPending = false;
+              return;
+            }
             if ((mode === "retry-paused" || mode === "retry-running") && stopAttempts === 1) {
               throw new Error("Stop failed while runner remains active");
             }
@@ -78,6 +93,34 @@ for (const mode of ["paused", "running", "forced", "stop-failed", "natural", "re
     await page.getByRole("button", { name: "▶ デバッグ開始" }).click();
     await expect(page.locator(".debug-step--" + active)).toHaveCount(1);
     await page.getByRole("button", { name: "■ 停止", exact: true }).click();
+    if (mode === "residual") {
+      const start = page.getByRole("button", { name: "▶ デバッグ開始" });
+      const retry = page.getByRole("button", { name: "■ 停止再試行", exact: true });
+      await expect(retry).toBeEnabled();
+      await expect(start).toBeDisabled();
+      await expect(page.locator(".debug-summary > div").first()).toContainText("終了未確認");
+      await expect(page.locator(".debug-step--passed")).toHaveCount(1);
+      await expect(page.locator(".debug-step--failed")).toHaveCount(1);
+      await expect(page.getByRole("button", { name: "⏭ 次のステップ" })).toBeDisabled();
+      await expect(page.getByRole("button", { name: "▷ 続行" })).toBeDisabled();
+      await retry.click();
+      await expect(page.getByText(/停止失敗:.*Retry failed/).first()).toBeVisible();
+      await expect(retry).toBeEnabled();
+      await expect(start).toBeDisabled();
+      await retry.click();
+      await expect.poll(() => page.evaluate(() => typeof (window as unknown as { __releaseStop?: () => void }).__releaseStop)).toBe("function");
+      await expect(start).toBeDisabled();
+      await expect(page.getByRole("button", { name: "停止中…" })).toBeDisabled();
+      await page.evaluate(() => (window as unknown as { __releaseStop: () => void }).__releaseStop());
+      await expect(start).toBeEnabled();
+      await expect(page.getByText("残留ランナーを停止しました").first()).toBeVisible();
+      await expect(page.locator(".debug-summary > div").first()).toContainText("失敗");
+      await expect(page.locator(".debug-step--failed")).toHaveCount(1);
+      await expect(page.getByRole("button", { name: "■ 停止", exact: true })).toBeDisabled();
+      await start.click();
+      await expect(page.locator(".debug-step--running")).toHaveCount(1);
+      return;
+    }
     if (mode === "retry-paused" || mode === "retry-running") {
       await expect(page.getByText(/停止失敗:.*Stop failed while runner remains active/).first()).toBeVisible();
       await expect(page.getByRole("button", { name: "▶ デバッグ開始" })).toBeDisabled();
