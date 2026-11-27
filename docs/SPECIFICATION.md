@@ -11,7 +11,7 @@ Windows向けWebテストシナリオ作成・実行ツール。Tauri 2 + React 
 - シナリオはJSON形式の外部ファイル `.pflow` として管理し、SQLiteは使わない。
 - ブラウザはMicrosoft EdgeとChromiumを選択可能。ヘッドレス実行を切り替え可能。
 - シナリオごとの専用実行EXEは生成しない。
-- Node.jsランナーやブラウザを同梱した単一ポータブルEXE化は**未実装**。
+- 実機検証用のWindows x64ポータブルZIPはEXEと隣接runtime（Node.js、tsx、Playwright、Chromium、ソース）を同梱する構成。WebView2 RuntimeとEdge選択時のEdgeは別途必要。リリースEXEは同梱runtimeを必須とし、開発ビルドのみ開発環境へフォールバックする。スクリーンショットはruntime/screenshotsへ保存。単一EXE化は未実装。ZIP生成・実機動作は未検証。
 
 ## 画面仕様
 
