@@ -8,3 +8,5 @@ src-tauri/target/
 playwright-report/
 test-results/
 /screenshots/
+
+/portable-dist/
