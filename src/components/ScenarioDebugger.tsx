@@ -13,6 +13,7 @@ type Props = {
   runOutcome: "completed" | "failed" | "cancelled" | null;
   pausedNode: string | null;
   busy: boolean;
+  cleanupPending: boolean;
   debugging: boolean;
   stopping: boolean;
   logs: string[];
@@ -26,7 +27,7 @@ type Props = {
   onHome: () => void;
 };
 
-export function ScenarioDebugger({ scenario, nodes, edges, nodeStatus, runOutcome, pausedNode, busy, debugging, stopping, logs, message, theme, onStart, onStep, onContinue, onStop, onEdit, onHome }: Props) {
+export function ScenarioDebugger({ scenario, nodes, edges, nodeStatus, runOutcome, pausedNode, busy, cleanupPending, debugging, stopping, logs, message, theme, onStart, onStep, onContinue, onStop, onEdit, onHome }: Props) {
   const counts = useMemo(() => ({
     passed: Object.values(nodeStatus).filter(s => s === "passed").length,
     failed: Object.values(nodeStatus).filter(s => s === "failed").length,
@@ -44,14 +45,14 @@ export function ScenarioDebugger({ scenario, nodes, edges, nodeStatus, runOutcom
       <div className="debug-toolbar">
         <button onClick={onHome} disabled={busy}>⌂ TOPへ</button>
         <button onClick={onEdit} disabled={busy}>✎ 編集へ</button>
-        <button className="run-button" onClick={onStart} disabled={busy}>▶ デバッグ開始</button>
+        <button className="run-button" onClick={onStart} disabled={busy || cleanupPending || stopping}>▶ デバッグ開始</button>
         <button onClick={onStep} disabled={!debugging || !pausedNode || stopping}>⏭ 次のステップ</button>
         <button onClick={onContinue} disabled={!debugging || !pausedNode || stopping}>▷ 続行</button>
-        <button className="stop-button" onClick={onStop} disabled={!busy || stopping}>{stopping ? "停止中…" : "■ 停止"}</button>
+        <button className="stop-button" onClick={onStop} disabled={(!busy && !cleanupPending) || stopping}>{stopping ? "停止中…" : cleanupPending ? "■ 停止再試行" : "■ 停止"}</button>
       </div>
     </div>
     <div className="debug-summary">
-      <div><span>実行状態</span><strong>{busy ? stopping ? "停止中" : pausedNode ? "一時停止中" : "実行中" : runOutcome === "cancelled" ? "停止" : runOutcome === "failed" ? "失敗" : runOutcome === "completed" ? "完了" : completedCount ? counts.failed ? "失敗あり" : "完了" : "待機"}</strong></div>
+      <div><span>実行状態</span><strong>{cleanupPending ? "終了未確認" : busy ? stopping ? "停止中" : pausedNode ? "一時停止中" : "実行中" : runOutcome === "cancelled" ? "停止" : runOutcome === "failed" ? "失敗" : runOutcome === "completed" ? "完了" : completedCount ? counts.failed ? "失敗あり" : "完了" : "待機"}</strong></div>
       <div><span>成功ノード</span><strong>{counts.passed} / {scenario.nodes.length}</strong></div>
       <div><span>失敗ノード</span><strong>{counts.failed}</strong></div>
       <div><span>{pausedNode ? "次のノード" : busy ? "実行中のノード" : "最終実行ノード"}</span><strong>{currentNode?.label ?? "—"}</strong></div>
