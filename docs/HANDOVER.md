@@ -11,6 +11,8 @@
 
 ## 最新コミット情報
 
+- CI #130（run 46058153070、検証HEAD `5a4e7dadd79b8313beed4e72246c0884f949ddba`）は **成功**。Windows手動CIのfrontend/rust両ジョブ成功。Vitest 76成功・2スキップ（全78）、TypeScript/Viteビルド成功、Playwright GUI 66成功・12スキップ（全78）、Rust `cargo check` 成功。前回の早期STOPテスト修正をCIで検証済み。Rust `cargo test` とWindows Tauri実機動作は未実施。今回コード変更なし、CI再実行なし。次は残留確認IPC失敗時の安全対策、自然終了再確認、Rustテストの手動検証計画。
+
 - `91f48ae733c7e6a1587ab9031716b21ac82de8d0`: CI #129（run 46055003347、develop 60a9795）ではVitest 76成功・2スキップ、TypeScript/Viteビルド成功、Rust cargo check成功、Playwright GUI 65成功・1失敗・12スキップ。失敗は tests/ui/stop.spec.ts の early STOP で、recorder-ready 前の正常終了をテストが誤って失敗判定。earlyだけready待機を除外して終了コード検証は維持。修正後テスト・ビルド未実行、CI再実行なし。次はユーザー手動CIでGUI含む再検証、Rust単体テスト、残留確認IPC失敗時対策。
 - `0c8583a96fa5229a4b1cb59f586bc8db5dd9f117`: リポジトリはユーザーがPublic化済み。手動workflow_dispatchのみで検証する現行ルールへ更新。自動CIや課金設定は変更なし。
 
