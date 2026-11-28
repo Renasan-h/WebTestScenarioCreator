@@ -11,6 +11,9 @@
 
 ## 最新コミット情報
 
+- **CI #131（run 46122378213）成功**：検証HEAD `4d621575b86c9ba884b0251a16ed695b0d9ef359`、手動 `workflow_dispatch` でfrontend・rust・portableの3ジョブ全成功。Vitest 76成功・2スキップ（78件）、GUI 67成功・12スキップ（79件）、TypeScript/Viteビルド成功、Rust cargo check成功。WindowsポータブルZIP生成・Artifact登録成功（`WebTestScenarioCreator-windows-x64`、Artifact ID 15255125038、約395.6MB、当初保存期間3日）。ZIPの配布先実機起動・記録・実行・デバッグ・停止、Rust単体テストは未検証。警告はViteのチャンクサイズおよびActionsのNode.js 20非推奨など。今回アプリコード変更なし、CI再実行なし。次はユーザーによるZIP展開後の実機検証とログ確認。最新HEADはこの文書コミットによって移動するため、CI成功は上記検証SHAに対する結果として扱う。
+
+
 - ユーザー承認によりmainのCI定義のみdevelopと同期（mainコミット `124c22225d4062e81505864819e96b2ad2db55fb`）。Run workflowでdevelopを選択しBuild Windows portable ZIPを有効にする。開発コードのマージなし、CI起動なし。ZIP生成・実機検証は未実施。
 
 - Phase 6先行（ユーザー指示）。`d0bc3f487e9138153269c288fd9417519ac6decc`, `97a46c0982084c8eef4a67c6b7d3c1537d6a92b5`, `21dfcd94c020c9c6f741e374d4b278c064bb2709`, `fd4dba05b161475053466252bf3da66655dae9da`, `8d94b48f8adb3d7e52915eeddf97e1c817585c51`, `ff7daf9c591c88cc5f1176bfe7272ceb4170a48c`, `425de94d5e3ffd4c69697e7687d8928b9b40086b`: EXE隣接runtime起動、Windows ZIP生成スクリプト、pnpm build:portable、develop手動CIのportableオプション、仕様・ロードマップ更新。Node/Chromium同梱、WebView2とEdgeはOS側依存。単一EXE未実装、署名なし。ビルド・ZIP生成・実機・テスト未実行。mainのworkflow定義は変更していないため、Run workflow画面でportable入力が表示されない可能性あり。その場合はmainのCI定義のみ更新する承認を得るか、既存Windows開発環境でpnpm build:portableを実行。次はZIP生成成功と実機起動・記録・実行・停止確認、依存ライセンス確認、単一EXE化。CI未起動。
